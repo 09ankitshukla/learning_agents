@@ -1,0 +1,13 @@
+hey so i've been trying to figure out how to set up sso for our team all morning
+
+we're on the growth plan, 12 seats. the docs page for saml just 404s (the link
+from the admin settings page itself, so that's on you). i found an old blog post
+from 2022 but the screenshots don't match anything in the current ui at all.
+
+not urgent-urgent, nobody's blocked, we're all just using passwords like animals
+for now. but our security review is in three weeks and i'd rather not explain
+that we couldn't find the documentation.
+
+is there a current guide somewhere? happy to be pointed at it.
+
+- marcus, ops @ tidepool analytics
