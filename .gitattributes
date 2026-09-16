@@ -1,0 +1,13 @@
+# Normalise line endings so the repo is identical on Windows, macOS and Linux.
+# Without this, Git warns on every add ("LF will be replaced by CRLF") and a
+# clone on another OS shows every line as modified.
+* text=auto eol=lf
+
+# Binary and generated files Git should not try to normalise or diff as text.
+*.png binary
+*.jpg binary
+*.webp binary
+*.gif binary
+
+# uv.lock is generated; keep it out of diffs to reduce review noise.
+uv.lock linguist-generated=true
