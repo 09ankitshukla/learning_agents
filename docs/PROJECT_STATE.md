@@ -1,8 +1,32 @@
 # Project state — read this first when resuming
 
-Last updated: end of lesson 02, before starting lesson 03.
+Last updated: end of lesson 03, pushed to GitHub, paused before starting lesson 04.
 
 This file exists so you (or an AI assistant in a fresh session) can resume without re-deriving context. If you're an assistant reading this: everything here is current and verified. Don't re-explore the basics; skim this, then read the file list at the bottom.
+
+---
+
+## Restart in two minutes
+
+Everything is already installed and committed. Nothing is half-finished.
+
+```powershell
+# confirm the environment still works (9 checks, ~5 seconds)
+uv run lessons/00-setup/check_env.py
+
+# see the most recent working state: an agent solving a 3-step task
+uv run lessons/03-agent-loop/agent.py
+```
+
+If `uv` is not found in a fresh shell, refresh PATH:
+
+```powershell
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+```
+
+If `check_env.py` reports the model is unavailable, Groq retired it. The script prints the currently served models; pick one and update `LLM_MODEL` in `.env`. This has already happened once during the project.
+
+To carry on building: **lesson 04, memory and context management.** The full plan is in "Where lesson 04 picks up" below, and its problem statement is already measured.
 
 ---
 
@@ -27,7 +51,28 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 04 — Memory and context | **Next up. Not started.** |
 | 05–13 | Planned only. See the curriculum table in the root README. |
 
-Nothing is committed to git yet. The repo is `git init`-ed with no commits.
+## Git
+
+Published at **https://github.com/09ankitshukla/learning_agents** on branch `main`, six commits, local and remote in sync.
+
+```
+docs: Add revision index, glossary and project handoff
+feat(lesson-03): Add the agent loop with caps, stop reasons and sandboxing
+feat(lesson-02): Add hand-wired tool calling and six failure modes
+feat(lesson-01): Add structured output via validate-and-repair
+feat(lesson-00): Add environment setup and model mechanics
+chore: Add project scaffold and shared model layer
+```
+
+Things to know before committing again:
+
+- Identity is set **repo-locally** (`09ankitshukla` / `09ankitshukla@gmail.com`). Global git config is deliberately untouched.
+- Auth is HTTPS via Git Credential Manager. The first push opened a browser; later pushes should use cached credentials.
+- `.env` is gitignored and verified absent from all history. A regex scan across every commit found no key material. Keep it that way — the Groq key lives only in `.env`.
+- **PowerShell breaks multi-line commit messages.** Bash heredocs (`<<'MSG'`) are a parse error, and piping a here-string to `git commit -F -` silently prepends a UTF-8 BOM to the subject. Use repeated `-m` flags, with backtick-n for newlines inside a paragraph. Verify with `git log -n 1 --pretty=%s | Format-Hex`.
+- The six commits are organised by concern, not as a replay of how the code evolved: `llmkit` gained reasoning support, `tool_choice` and `ToolRegistry` while lessons 0, 2 and 3 were being built, but it all lands whole in commit 1. Every commit is still a working state.
+
+Suggested next commit style: one per lesson, `feat(lesson-04): ...`.
 
 ## Environment (already set up, don't redo)
 
