@@ -1,6 +1,6 @@
 # Project state — read this first when resuming
 
-Last updated: end of lesson 03, pushed to GitHub, paused before starting lesson 04.
+Last updated: paused before starting lesson 04. Environment re-verified and working; no code has changed since lesson 03 was pushed.
 
 This file exists so you (or an AI assistant in a fresh session) can resume without re-deriving context. If you're an assistant reading this: everything here is current and verified. Don't re-explore the basics; skim this, then read the file list at the bottom.
 
@@ -27,6 +27,13 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 If `check_env.py` reports the model is unavailable, Groq retired it. The script prints the currently served models; pick one and update `LLM_MODEL` in `.env`. This has already happened once during the project.
 
 To carry on building: **lesson 04, memory and context management.** The full plan is in "Where lesson 04 picks up" below, and its problem statement is already measured.
+
+**Two decisions are open and should be settled before writing lesson 04.** They were put to the user and not yet answered, so ask once and don't re-derive them:
+
+1. **Does session persistence belong in lesson 04, or its own lesson?** Lesson 04 is already the fullest one so far. Recommendation: include a minimal JSON save/resume and do not gold-plate it.
+2. **Should the lesson demonstrate a real context-window overflow?** `gpt-oss-120b` has a large window, so filling it naturally is slow and expensive. Recommendation: set an artificially small budget (~2,000 tokens), label clearly that the number is synthetic, and show the trimming and summarisation machinery working against it. The alternative is to skip the demo, which is weaker.
+
+If the user says "go" or "use your defaults", take both recommendations above.
 
 ---
 
@@ -125,6 +132,7 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 On `openai/gpt-oss-120b` via Groq:
 
 - Speed: ~107–240 tok/s (varies with free-tier queue time)
+- Groq's served model count drifts (14 at first use, 13 on a later check). Nothing we depend on has been retired so far, but `check_env.py` is the source of truth.
 - Reasoning share: 74–93% of output tokens
 - Lesson 1 reliability, 5 identical runs at temperature 0: **3/5 succeeded first attempt**, all 5 final outputs identical. The repair loop silently absorbed a 40% failure rate.
 - Lesson 1, `json_mode` vs prompt-only: 1 attempt / 1,716 tokens vs 2 attempts / 3,044 tokens.
