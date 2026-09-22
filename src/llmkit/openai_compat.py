@@ -235,8 +235,29 @@ class OpenAICompatClient:
                 "Check LLM_API_KEY in .env, or switch back to LLM_PROVIDER=ollama."
             )
         if exc.status_code == 429:
+            # Pass the provider's own message through. It usually says which limit
+            # was hit (per-minute vs per-day, requests vs tokens) and when to retry,
+            # and that distinction decides what you do next: wait 30 seconds, or
+            # stop for the day and switch to a local model.
+            detail = ""
+            body = exc.body if isinstance(exc.body, dict) else {}
+            error = body.get("error") if isinstance(body.get("error"), dict) else body
+            provider_message = str(error.get("message", "")).strip()
+            if provider_message:
+                detail = f"\n\n{self.config.provider} says:\n  {provider_message}"
+
             return ConfigError(
-                f"Rate limited by {self.config.provider}. Wait, or switch to a local model."
+                f"Rate limited by {self.config.provider} (HTTP 429).{detail}\n\n"
+                "Options:\n"
+                "  - wait for the window to reset (the message above usually says how long)\n"
+                "  - switch to a local model, which has no quota:\n"
+                "      LLM_PROVIDER=ollama\n"
+                "      LLM_MODEL=qwen2.5:7b-instruct\n"
+                "  - use a smaller model to stretch a token quota further:\n"
+                "      LLM_MODEL=openai/gpt-oss-20b\n\n"
+                "Note that agent loops burn quota fast: every step re-sends the whole "
+                "conversation, so a handful of multi-step runs can consume a daily "
+                "token allowance."
             )
         return exc
 

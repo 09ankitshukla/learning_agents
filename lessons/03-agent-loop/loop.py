@@ -168,6 +168,8 @@ def run_agent(
     max_tokens: int = 1024,
     on_step: object = None,  # callable(Step) -> None, for live output
     warn_near_limit: bool = True,
+    compactor: object = None,  # callable(list[Message], int) -> list[Message]
+    initial_messages: list[Message] | None = None,
 ) -> Trajectory:
     """Run the agent loop until the model stops asking for tools.
 
@@ -191,15 +193,39 @@ def run_agent(
     tools", not "the answer is correct". An agent that politely explains it cannot
     do the task also completes. Distinguishing a real answer from a graceful
     refusal needs task-level scoring, which is lesson 7.
+
+    Two parameters were added after this lesson was written, both optional and
+    both no-ops by default, so nothing described above changes:
+
+    `compactor` is called with (messages, step_index) immediately before each model
+    call and returns the list to actually send. That is where lesson 4 inserts
+    trimming and summarisation. The point of the hook is that context management is
+    a transformation applied *to the message list*, not a change to the loop.
+
+    `initial_messages` starts the loop from an existing conversation instead of a
+    fresh one, with `question` appended as a follow-up. That is what makes a saved
+    session resumable: state lives entirely in the message list (lesson 0), so
+    reloading it and continuing is all "resume" means.
     """
-    messages: list[Message] = [
-        system(system_prompt or DEFAULT_SYSTEM_PROMPT),
-        user(question),
-    ]
+    if initial_messages:
+        messages = list(initial_messages) + [user(question)]
+    else:
+        messages = [
+            system(system_prompt or DEFAULT_SYSTEM_PROMPT),
+            user(question),
+        ]
     trajectory = Trajectory(question=question, messages=messages)
     seen_signatures: list[tuple[str, ...]] = []
 
     for index in range(1, max_steps + 1):
+        # ---- COMPACT (lesson 4) ---------------------------------------
+        # Context management happens here and nowhere else: it is a
+        # transformation of the message list, applied just before the list is
+        # sent. With no compactor this is a no-op and the loop is unchanged.
+        if callable(compactor):
+            messages = compactor(messages, index)
+            trajectory.messages = messages
+
         # ---- THINK ----------------------------------------------------
         try:
             response = client.chat(
