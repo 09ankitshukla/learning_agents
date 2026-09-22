@@ -8,6 +8,18 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **Context window** — the maximum tokens a model can consider at once, covering the system prompt, the whole conversation, tool schemas, tool results and the reply. A hard wall: exceed it and you get an error or silent truncation.
 
+**Compaction** — shrinking a conversation to fit a budget, applied just before sending. Umbrella term for trimming, summarising and compressing tool results.
+
+**Atomic group** — an assistant turn with `tool_calls` plus the `tool` messages answering it. Indivisible: splitting it makes the provider reject the whole request.
+
+**Orphaned tool result** — a `tool` message whose matching `assistant` tool_call was trimmed away. The most common bug in hand-written context management, and intermittent because whether a cut splits a group is luck.
+
+**Trimming** — dropping whole old exchanges to fit a budget. Cheap; forgets.
+
+**Summarisation** — replacing old turns with a model-written précis. Remembers the gist, costs an extra model call, and has a break-even point: it only pays off if many calls follow.
+
+**Chat template** — the provider-side formatting that wraps your messages before the model sees them. Often injects its own preamble, which is a fixed per-request token cost you pay on every call.
+
 **Inference** — running a model to produce output. The expensive part.
 
 **Inference server** — the process that loads weights and generates tokens. Ollama, llama.cpp, vLLM, or a hosted provider.

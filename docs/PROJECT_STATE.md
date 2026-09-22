@@ -1,6 +1,6 @@
 # Project state — read this first when resuming
 
-Last updated: paused before starting lesson 04. Environment re-verified and working; no code has changed since lesson 03 was pushed.
+Last updated: end of lesson 04, before starting lesson 05.
 
 This file exists so you (or an AI assistant in a fresh session) can resume without re-deriving context. If you're an assistant reading this: everything here is current and verified. Don't re-explore the basics; skim this, then read the file list at the bottom.
 
@@ -55,8 +55,14 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 01 — Structured output | **Complete, verified against a live model** |
 | 02 — Tool calling by hand | **Complete, verified against a live model** |
 | 03 — The agent loop | **Complete, verified against a live model** |
-| 04 — Memory and context | **Next up. Not started.** |
-| 05–13 | Planned only. See the curriculum table in the root README. |
+| 04 — Memory and context | **Complete, verified against a live model** |
+| 05 — Retrieval | **Next up. Not started.** |
+| 06–13 | Planned only. See the curriculum table in the root README. |
+
+Lesson 3's `run_agent` gained two optional parameters while building lesson 4:
+`compactor` (a hook called before each model call) and `initial_messages` (start
+from an existing conversation, which is what makes resume work). Both default to
+no-ops, and lessons 0–3 were re-verified afterwards.
 
 ## Git
 
@@ -127,6 +133,10 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 **PowerShell fakes failures.** Exit code 1 from `uv` often just means it wrote to stderr, and piping to `Select-Object -First` also produces a non-zero exit. Don't trust it; check the actual output.
 
+**The Groq free tier has a 200,000 tokens-per-day cap, and agent loops burn it fast.** Hit while building lesson 4: 198,405 of 200,000 used, several experiments left unrunnable. Every loop step re-sends the whole conversation, so a handful of multi-step runs consumes a daily allowance. Two workarounds that both worked: switch to `openai/gpt-oss-20b`, which has its own quota, or wait for the window. `llmkit` now surfaces the provider's own 429 text (which limit, how long to wait) instead of a generic message.
+
+**This is a hard constraint on lessons 7–9.** An eval suite over a few dozen cases, each a multi-step agent run, will exceed 200k tokens per day easily. Plan for it: use `gpt-oss-20b` for eval runs, keep datasets small, cache results so a re-run does not re-spend tokens, or budget across days.
+
 ## Measured results worth keeping
 
 On `openai/gpt-oss-120b` via Groq:
@@ -137,7 +147,22 @@ On `openai/gpt-oss-120b` via Groq:
 - Lesson 1 reliability, 5 identical runs at temperature 0: **3/5 succeeded first attempt**, all 5 final outputs identical. The repair loop silently absorbed a 40% failure rate.
 - Lesson 1, `json_mode` vs prompt-only: 1 attempt / 1,716 tokens vs 2 attempts / 3,044 tokens.
 
-## Where lesson 04 picks up
+## Where lesson 05 picks up
+
+Lesson 3 gave the agent `search_files`, which is **literal keyword search**: you must guess the exact wording used in the file. Its own tool description admits this. That limitation is lesson 5's motivation — ask "why not use eval?" and a keyword search for "eval" works, but ask "how do we stop the model running dangerous code?" and it finds nothing.
+
+Lesson 05 should build:
+
+1. **Embeddings** — text to vectors, and why nearby vectors mean similar meaning. Needs a local embedding model or a hosted embedding API; check what Groq serves, and note that `sentence-transformers` runs on CPU acceptably even without a GPU since embedding is far cheaper than generation.
+2. **Chunking** — splitting the lesson notes into retrievable pieces, and how chunk size and overlap change results. The repo's own `NOTES.md` files are the corpus, which keeps it self-referential and honest.
+3. **A vector store** — start with numpy and cosine similarity so the mechanism is visible, then note what a real store adds.
+4. **Retrieval as a tool** — a `search_notes` tool beside the existing `search_files`, so the agent chooses, and you can compare keyword against semantic on the same question.
+5. **Why retrieval beats stuffing** — connect to lesson 4: putting whole documents in context is what blew the token budget, and retrieval is how you send only the relevant part.
+6. **Honest failure modes** — retrieval returning confidently irrelevant chunks, the chunk-boundary problem where an answer straddles two chunks, and why hybrid keyword-plus-semantic usually beats either.
+
+Watch the token budget: embedding the corpus is cheap, but comparison experiments that run the agent repeatedly are not.
+
+## Where lesson 04 picked up (done)
 
 Lesson 3 ends with a measured problem statement rather than a cliffhanger. Run:
 
@@ -234,6 +259,13 @@ lessons/03-agent-loop/
   toolset.py                   imports lesson 2's 3 tools + 3 sandboxed fs tools
   agent.py                     deliverable; --research/--step-limits/--sandbox/--growth
   NOTES.md                     revision notes incl. measured context growth
+
+lessons/04-memory-context/
+  README.md                    the problem, atomic groups, 4 strategies, 5 experiments
+  context.py                   THE lesson: measuring, grouping, validate(), 4 strategies
+  session.py                   save/resume; small on purpose
+  agent.py                     deliverable; --orphan/--calibrate/--strategies/--compare/--save/--resume
+  NOTES.md                     revision notes incl. the 91% estimator error
 ```
 
 Note: `dispatch()` was promoted from lesson 2 into `src/llmkit/tools.py` as

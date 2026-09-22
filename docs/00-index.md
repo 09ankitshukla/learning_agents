@@ -114,9 +114,33 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **A helpful mechanism can corrupt your metrics.** Warning the model near the step limit produces better answers *and* turns an honest `MAX_STEPS` failure into a `COMPLETED`. Record that it happened (`budget_warned`) so success stays trustworthy.
 
-## Lesson 04 — Memory and context
+## Lesson 04 — Memory and context · [notes](../lessons/04-memory-context/NOTES.md)
 
-*Not yet written.*
+**The one idea: context management is a transformation of the message list, applied just before sending.** The loop does not change — lesson 3's `run_agent` gained one optional hook.
+
+**A message list is not flat.** An assistant turn with `tool_calls` plus the `tool` messages answering it is an **atomic group**, paired by `tool_call_id`. Split one and the provider returns 400. Verified: `HarmonyError: render failed: Tools should have a name!`
+
+**Naive trimming is not reliably broken, which is what makes it dangerous.** Whether a cut lands on a group boundary is luck, so the bug is intermittent and looks like a flaky provider. Group before trimming, and `validate()` afterwards.
+
+**Never droppable:** the system prompt (defines behaviour) and the first user message (*is* the task).
+
+**Calibrate your token estimator or it will be wrong in the dangerous direction.** `chars/3.7 + 4` measured **91% too low** (7 estimated, 79 charged). Causes: a ~70-token fixed per-request cost from the chat template, and JSON/code tokenizing ~40% denser than prose. After correction: +19% worst case, and it now over-estimates, which is safe.
+
+**Compress tool results first.** Measured on one conversation: 2,711 → 1,429 tokens (53%) with **no model call**. Trimming reached 38% but forgets; summarising reached 37% but costs a call. Order your policy cheapest-first.
+
+**Summarisation has a break-even point.** One instance saved 45 tokens and cost 1,493 to produce. You pay once and save on every later call, so it only pays off if many calls follow. Summaries also compound — detail decays geometrically if you summarise a summary.
+
+**Trimming makes the agent redo work.** A safely-trimmed agent immediately re-requested a tool whose result was deleted. You trade context tokens for repeated tool calls; sometimes that is a loop.
+
+**Budgets have a floor.** Protected content can exceed the budget you asked for. Report that rather than silently returning something too big.
+
+**Measured before/after** (budget 900): input tokens 9,726 → 6,747, **−31%**; per step 1,621 → 1,124. Compare per-step, not totals, since totals move with step count.
+
+**Verify the mechanism fired.** An earlier run printed a plausible comparison table with `0 compactions` — the budget was never crossed, so it compared nothing but variance. A harness that looks credible when the thing under test never ran is how false conclusions get made.
+
+**The message list is the entire state of an agent**, so saving a session is `json.dump` and resuming is reading it back. A resumed session is already full-size, so compact *before* the first new call — and its budget must exceed the session's own size, or you delete the work you just loaded.
+
+**My own summariser starved on 400 max_tokens** and returned empty, walking straight into lesson 0's reasoning-token trap. Infrastructure model calls need the same budget headroom as the agent's. And its fallback silently did nothing because of a hardcoded budget — a fallback that quietly no-ops is worse than none.
 
 ## Lesson 05 — Retrieval
 

@@ -61,7 +61,7 @@ Note that hosted providers retire models regularly — `check_env.py` prints the
 
 | # | Lesson | Concepts | Deliverable |
 |---|---|---|---|
-| 04 | Memory and context | history management, trimming, summarisation, persistence | agent with durable sessions |
+| 04 | [Memory and context](lessons/04-memory-context) | token accounting, atomic message groups, trimming, summarisation, persistence | agent that stays inside a budget |
 | 05 | Retrieval as a tool | chunking, embeddings, vector search, retrieval vs. context stuffing | agent that answers over your own notes |
 | 06 | Testing agents | deterministic vs. stochastic parts, recorded fixtures, trajectory assertions | a real pytest suite |
 
@@ -103,9 +103,9 @@ uv run lessons/01-structured-output/extract.py
 
 ## Status
 
-Lessons 00 through 03 are complete and verified against a live model. Lesson 04 is next.
+Lessons 00 through 04 are complete and verified against a live model. Lesson 05 is next.
 
-By the end of lesson 3 you have a working agent: it plans across multiple steps, recovers from its own mistakes, refuses to escape its sandbox, and reports honestly when it gives up.
+By the end of lesson 3 you have a working agent: it plans across multiple steps, recovers from its own mistakes, refuses to escape its sandbox, and reports honestly when it gives up. Lesson 4 keeps it inside a token budget and lets a session survive a restart.
 
 Resuming after a break, or picking this up cold? Start with **[docs/PROJECT_STATE.md](docs/PROJECT_STATE.md)** — current status, environment, design decisions and the findings that cost real debugging time.
 
