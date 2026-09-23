@@ -142,9 +142,39 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **My own summariser starved on 400 max_tokens** and returned empty, walking straight into lesson 0's reasoning-token trap. Infrastructure model calls need the same budget headroom as the agent's. And its fallback silently did nothing because of a hardcoded budget — a fallback that quietly no-ops is worse than none.
 
-## Lesson 05 — Retrieval
+## Lesson 05 — Retrieval · [notes](../lessons/05-retrieval/NOTES.md)
 
-*Not yet written.*
+**The one idea: similarity search is a dot product followed by a sort.** Embed documents once, embed the query, multiply, take top k. No vector database needed for a few hundred chunks. Normalising vectors to unit length is what reduces cosine similarity to a plain dot product.
+
+**Retrieval is the answer to lesson 4's problem.** Lesson 4 salvaged a full context window; retrieval avoids filling it. Measured: the corpus is ~33,000 tokens, retrieving top 3 sent 883 — **2.2%**. But stuffing cannot miss and retrieval can, so accuracy matters.
+
+**Measured on 193 chunks, 10 paraphrased queries:**
+
+| method | top-1 | recall@4 |
+|---|---|---|
+| keyword | 0/10 | 7/10 |
+| semantic | 7/10 | 8/10 |
+| hybrid | 7/10 | 9/10 |
+
+**recall@k matters more than top-1 for an agent**, because it reads all k results. Keyword's 0/10 top-1 looks catastrophic until you see 7/10 recall@4.
+
+**Absolute similarity scores are nearly meaningless.** Cosine sits in a 0.6–0.8 band even for bad matches. Only ranking and the first-to-second gap inform. A fixed threshold like "above 0.75" is almost impossible to tune.
+
+**Two measurement bugs, and they are the real lesson.** Labels matched only file paths, so a correct hit on `docs/00-index.md > … > Lesson 02` scored as a miss — **your ground truth encodes assumptions, and an apparent miss is sometimes a better answer than the one you labelled.** Then the identical bug in a second experiment produced 3/10 where the first gave 7/10, caught *only* because two measurements of the same thing disagreed. **An eval that is subtly wrong is more dangerous than no eval.**
+
+**A finding that did not replicate.** Embedding headings with chunk bodies gained 4/7→6/7 on a hand-written 8-chunk probe and **nothing** on the real 193-chunk corpus. Small hand-picked samples have no competing documents and uniformly good headings. **A result from a tiny sample is a hypothesis, not a finding.**
+
+**Hybrid is not automatically better.** The two score scales are incompatible (cosine narrow, IDF unbounded), and min-max normalisation is outlier-sensitive, so one strong keyword match can drag an unrelated chunk above a correct semantic hit. Rank-based fusion is the standard fix.
+
+**A summary document is an attractor.** `docs/00-index.md` condenses everything, so it matches most queries reasonably and crowds out detailed sources. Like an FAQ outranking the real docs.
+
+**429 and 413 are different problems.** 429 means wait. **413 means this request will never fit** — waiting cannot help; reduce what you send. Retrieval plus seven tool schemas plus history hit 10,020 tokens against an 8,000 TPM ceiling. Fixed by using lesson 4's `ContextManager` unchanged: lessons compose.
+
+**Over-compression destroys retrieval.** Lesson 4's 600-char default crushed a 6,195-token search result to 765 and deleted what the search had just found; the agent re-searched five times. **Compression thresholds depend on how much of a tool's output is signal.** Bound results at source instead.
+
+**An agent with a search tool will search forever** when the answer is absent, rephrasing each time so stall detection never fires. Tell it explicitly when to stop.
+
+**Keyword search is not obsolete.** It scored 0/10 only because every query was paraphrased. For a literal string — function name, error message, identifier — it is exact where semantic is approximate. Keep both.
 
 ## Lesson 06 — Testing
 

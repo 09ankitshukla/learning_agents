@@ -23,6 +23,7 @@ For a fast refresher across everything, read **[docs/00-index.md](docs/00-index.
 ```powershell
 winget install --id=astral-sh.uv -e     # Python toolchain (installs Python too)
 uv sync                                 # create .venv, install pinned deps
+                                        # (add --extra retrieval for lesson 5)
 
 Copy-Item .env.example .env             # then add a free Groq key
 uv run lessons/00-setup/check_env.py    # verifies setup, measures your model
@@ -62,7 +63,7 @@ Note that hosted providers retire models regularly — `check_env.py` prints the
 | # | Lesson | Concepts | Deliverable |
 |---|---|---|---|
 | 04 | [Memory and context](lessons/04-memory-context) | token accounting, atomic message groups, trimming, summarisation, persistence | agent that stays inside a budget |
-| 05 | Retrieval as a tool | chunking, embeddings, vector search, retrieval vs. context stuffing | agent that answers over your own notes |
+| 05 | [Retrieval](lessons/05-retrieval) | chunking, embeddings, vector search, keyword vs semantic vs hybrid, measured | agent that answers over your own notes |
 | 06 | Testing agents | deterministic vs. stochastic parts, recorded fixtures, trajectory assertions | a real pytest suite |
 
 **Part 3 — Knowing whether it works.** The part most tutorials skip.
@@ -103,7 +104,7 @@ uv run lessons/01-structured-output/extract.py
 
 ## Status
 
-Lessons 00 through 04 are complete and verified against a live model. Lesson 05 is next.
+Lessons 00 through 05 are complete and verified against a live model. Lesson 06 is next.
 
 By the end of lesson 3 you have a working agent: it plans across multiple steps, recovers from its own mistakes, refuses to escape its sandbox, and reports honestly when it gives up. Lesson 4 keeps it inside a token budget and lets a session survive a restart.
 

@@ -106,7 +106,15 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **RAG (retrieval-augmented generation)** — fetching relevant text and adding it to the prompt so the model answers from real sources rather than memory.
 
-**Semantic vs. keyword search** — meaning-based vs. literal matching. Hybrid usually beats either alone.
+**Semantic vs. keyword search** — meaning-based vs. literal matching. Hybrid *often* beats either alone, but only if the scores are combined well; measured in lesson 5, a naive blend was no better than semantic alone.
+
+**Cosine similarity** — the standard measure of how close two embeddings are. If vectors are normalised to unit length it is just their dot product. Absolute values are compressed into a narrow band and carry little meaning; ranking and the gap between results are what inform.
+
+**recall@k** — was the correct document anywhere in the top k results. The metric that matters for an agent, since it reads all k. Distinct from top-1 accuracy, which matters when showing one answer to a user.
+
+**Rank fusion** — combining rankings by position (`1/(k + rank)`) rather than by raw score. Avoids the scale-mismatch problem that makes naive hybrid blending unstable.
+
+**Chunk boundary problem** — an answer straddling two chunks is retrievable by neither half. Overlap between chunks mitigates it but never fixes it.
 
 ## Testing and evaluation
 

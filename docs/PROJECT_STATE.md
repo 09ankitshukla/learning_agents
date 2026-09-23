@@ -56,8 +56,9 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 02 — Tool calling by hand | **Complete, verified against a live model** |
 | 03 — The agent loop | **Complete, verified against a live model** |
 | 04 — Memory and context | **Complete, verified against a live model** |
-| 05 — Retrieval | **Next up. Not started.** |
-| 06–13 | Planned only. See the curriculum table in the root README. |
+| 05 — Retrieval | **Complete, verified against a live model** |
+| 06 — Testing | **Next up. Not started.** |
+| 07–13 | Planned only. See the curriculum table in the root README. |
 
 Lesson 3's `run_agent` gained two optional parameters while building lesson 4:
 `compactor` (a hook called before each model call) and `initial_messages` (start
@@ -90,8 +91,8 @@ Suggested next commit style: one per lesson, `feat(lesson-04): ...`.
 ## Environment (already set up, don't redo)
 
 - **`uv` 0.12.13** installed via winget → `C:\Users\shhankit\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_*\uv.exe`
-- **Python 3.12.14** installed via `uv python install`
-- **`.venv`** created, 23 pinned dependencies installed via `uv sync`
+- **Python 3.12.14** installed via `uv python install`. `requires-python` is now **>=3.12**, raised from 3.11 when lesson 5 arrived (fastembed needs numpy>=2.3 needs 3.12). 3.11 was only ever claimed, never tested.
+- **`.venv`** created via `uv sync`. Lesson 5 needs `uv sync --extra retrieval`, which adds fastembed + numpy + onnxruntime.
 - **`.env`** exists and works. Provider is **Groq**, model **`openai/gpt-oss-120b`**.
 - No Ollama, no Docker. Local models are **deliberately deferred** by user instruction — the code path is complete and documented, just unused.
 
@@ -137,6 +138,10 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 **This is a hard constraint on lessons 7–9.** An eval suite over a few dozen cases, each a multi-step agent run, will exceed 200k tokens per day easily. Plan for it: use `gpt-oss-20b` for eval runs, keep datasets small, cache results so a re-run does not re-spend tokens, or budget across days.
 
+**There is also a per-minute ceiling: 8,000 TPM, and exceeding it returns HTTP 413, not 429.** Hit while building lesson 5 — retrieval results plus seven tool schemas plus history reached 10,020 tokens in one request. The distinction matters: 429 means wait, 413 means this request will never fit and waiting cannot help. `llmkit` now handles both with specific advice. The fix for 413 is lesson 4's `ContextManager`, plus bounding tool output at source.
+
+**Groq serves no embedding models** (verified: chat, safety classifiers, speech only). Lesson 5 embeds locally with `fastembed`, chosen over `sentence-transformers` because it uses ONNX and needs no PyTorch.
+
 ## Measured results worth keeping
 
 On `openai/gpt-oss-120b` via Groq:
@@ -147,7 +152,26 @@ On `openai/gpt-oss-120b` via Groq:
 - Lesson 1 reliability, 5 identical runs at temperature 0: **3/5 succeeded first attempt**, all 5 final outputs identical. The repair loop silently absorbed a 40% failure rate.
 - Lesson 1, `json_mode` vs prompt-only: 1 attempt / 1,716 tokens vs 2 attempts / 3,044 tokens.
 
-## Where lesson 05 picks up
+## Where lesson 06 picks up
+
+Lesson 6 is testing, and two pieces already exist:
+
+- `lessons/05-retrieval/queries.py` — 10 labelled queries with an `is_correct` matcher. An eval dataset in embryo.
+- `lessons/03-agent-loop/loop.py` — `Trajectory`, with `tool_sequence`, `stop_reason` and per-step records. Designed from the start to be asserted against.
+- `lessons/04-memory-context/context.py` — `validate()`, which catches orphaned tool results locally instead of as an HTTP 400.
+
+Lesson 06 should build:
+
+1. **Separating deterministic from stochastic.** Tools, chunking, trimming, `validate()` and the safe calculator are all deterministic and testable normally. Model output is not. Establishing that boundary is the core idea.
+2. **Recorded fixtures (cassettes).** Save real model responses to disk and replay them, so tests are fast, free and repeatable. Lesson 2's `failures.py` already hand-builds fake `ToolCall`s — generalise that.
+3. **Trajectory assertions.** Assert on `tool_sequence` and `stop_reason`, never on prose. Lesson 3 already makes this point; lesson 6 makes it routine.
+4. **Property tests for the risky parts.** The AST calculator and the path sandbox both have adversarial inputs already enumerated in lessons 2 and 3 — turn those tables into tests.
+5. **A regression test for the bugs this project actually hit.** The orphaned-tool-result 400, the path-only label matcher, the starved summariser, the 91%-low token estimator. Each was a real bug; each should now be caught automatically.
+6. **pytest wiring** — `pyproject.toml` already has a `[tool.pytest.ini_options]` section and a `dev` extra with pytest pinned, both unused so far.
+
+Keep tests offline by default so they cost no tokens, with live tests behind an opt-in marker.
+
+## Where lesson 05 picked up (done)
 
 Lesson 3 gave the agent `search_files`, which is **literal keyword search**: you must guess the exact wording used in the file. Its own tool description admits this. That limitation is lesson 5's motivation — ask "why not use eval?" and a keyword search for "eval" works, but ask "how do we stop the model running dangerous code?" and it finds nothing.
 
@@ -266,7 +290,21 @@ lessons/04-memory-context/
   session.py                   save/resume; small on purpose
   agent.py                     deliverable; --orphan/--calibrate/--strategies/--compare/--save/--resume
   NOTES.md                     revision notes incl. the 91% estimator error
+
+lessons/05-retrieval/
+  README.md                    embeddings, measured comparison, 6 exercises
+  chunking.py                  heading-aware markdown splitting; the non-replicating finding
+  store.py                     THE lesson: embeddings, cache, keyword/semantic/hybrid search
+  queries.py                   10 labelled queries -- the seed of lesson 7's eval set
+  agent.py                     deliverable; --build/--search/--measure/--chunking/--stuffing/--ask
+  NOTES.md                     revision notes incl. two measurement bugs
+  .cache/                      embedding cache (gitignored)
 ```
+
+Note lesson 5 imports lesson 4's `ContextManager` and lesson 3's `run_agent` and
+`build_registry` via explicit `sys.path` inserts. Lesson folders are not importable
+packages (digit-leading names), and lesson 5's tool module is `store.py` rather
+than `tools.py` to avoid colliding with lesson 2's.
 
 Note: `dispatch()` was promoted from lesson 2 into `src/llmkit/tools.py` as
 `ToolRegistry.dispatch()` so lessons 3+ don't rebuild it. Lesson 2's hand-rolled
