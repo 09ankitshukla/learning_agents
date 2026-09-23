@@ -1,6 +1,6 @@
 # Project state — read this first when resuming
 
-Last updated: end of lesson 04, before starting lesson 05.
+Last updated: end of lesson 07, before starting lesson 08.
 
 This file exists so you (or an AI assistant in a fresh session) can resume without re-deriving context. If you're an assistant reading this: everything here is current and verified. Don't re-explore the basics; skim this, then read the file list at the bottom.
 
@@ -8,14 +8,20 @@ This file exists so you (or an AI assistant in a fresh session) can resume witho
 
 ## Restart in two minutes
 
-Everything is already installed and committed. Nothing is half-finished.
+Everything is installed, committed and pushed. Nothing is half-finished.
 
 ```powershell
-# confirm the environment still works (9 checks, ~5 seconds)
+# 1. dependencies. --all-extras matters: naming fewer extras REMOVES the others
+uv sync --all-extras
+
+# 2. the fastest, cheapest confidence check -- no tokens spent
+uv run pytest lessons                    # expect 153 passed, 8 skipped, ~2s
+
+# 3. confirm the live model still works (9 checks, a few seconds)
 uv run lessons/00-setup/check_env.py
 
-# see the most recent working state: an agent solving a 3-step task
-uv run lessons/03-agent-loop/agent.py
+# 4. see a measured result without spending tokens
+uv run lessons/07-evaluation/evaluate.py --compare baseline strict
 ```
 
 If `uv` is not found in a fresh shell, refresh PATH:
@@ -24,16 +30,16 @@ If `uv` is not found in a fresh shell, refresh PATH:
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 ```
 
-If `check_env.py` reports the model is unavailable, Groq retired it. The script prints the currently served models; pick one and update `LLM_MODEL` in `.env`. This has already happened once during the project.
+If `check_env.py` says the model is unavailable, Groq retired it. The script prints what is currently served; pick one and update `LLM_MODEL` in `.env`. This has already happened once, and the served model count has drifted from 14 to 11 over the project.
 
-To carry on building: **lesson 04, memory and context management.** The full plan is in "Where lesson 04 picks up" below, and its problem statement is already measured.
+**To carry on building: lesson 08, judging and tracing.** The full plan is in "Where lesson 08 picks up" below. No decisions are outstanding — proceed unless the user wants to change direction.
 
-**Two decisions are open and should be settled before writing lesson 04.** They were put to the user and not yet answered, so ask once and don't re-derive them:
+**Two habits now expected of every change, because the tooling exists:**
 
-1. **Does session persistence belong in lesson 04, or its own lesson?** Lesson 04 is already the fullest one so far. Recommendation: include a minimal JSON save/resume and do not gold-plate it.
-2. **Should the lesson demonstrate a real context-window overflow?** `gpt-oss-120b` has a large window, so filling it naturally is slow and expensive. Recommendation: set an artificially small budget (~2,000 tokens), label clearly that the number is synthetic, and show the trimming and summarisation machinery working against it. The alternative is to skip the demo, which is weaker.
+1. Run `uv run pytest lessons` before and after. It is free and takes two seconds.
+2. If the change could affect agent behaviour, re-run the eval: `evaluate.py --run something --model openai/gpt-oss-20b`, then `--compare baseline something`. Cached executions mean a re-score costs nothing.
 
-If the user says "go" or "use your defaults", take both recommendations above.
+Every bug fixed from here should also gain a test in `lessons/06-testing/test_regressions.py`. That file is the project's honest changelog.
 
 ---
 
@@ -165,6 +171,16 @@ On `openai/gpt-oss-120b` via Groq:
 - Reasoning share: 74–93% of output tokens
 - Lesson 1 reliability, 5 identical runs at temperature 0: **3/5 succeeded first attempt**, all 5 final outputs identical. The repair loop silently absorbed a 40% failure rate.
 - Lesson 1, `json_mode` vs prompt-only: 1 attempt / 1,716 tokens vs 2 attempts / 3,044 tokens.
+- Lesson 3 context growth: prompt tokens 824 → 1,127 → 3,466 → 6,122 over four steps (11,539 input tokens for 4 calls). Cost grows ~quadratically with step count.
+- Lesson 4 compaction, budget 900: input tokens 9,726 → 6,747 (−31%); per step 1,621 → 1,124. Compressing tool results alone took a conversation from 2,711 → 1,429 tokens with no model call.
+- Lesson 4 token estimator: originally **91% too low** (7 estimated vs 79 charged) before accounting for a ~70-token chat-template preamble and JSON's higher density. Now +19% worst case, erring high.
+- Lesson 5 retrieval, 193 chunks / 10 paraphrased queries: keyword 0/10 top-1 but 7/10 recall@4; semantic 7/10 and 8/10; hybrid 7/10 and 9/10. Retrieval sends ~2.2% of the corpus versus stuffing it.
+
+On `openai/gpt-oss-20b` (used for evals, separate quota):
+
+- Lesson 7 baseline: **15/16 (94%)**, Wilson interval 72–99%, tool-choice accuracy 91%, ~33,000 tokens cold.
+- Lesson 7 strict-prompt variant: **14/16 (88%)** — a *regression*. The stricter prompt reads better and is worse.
+- `currency_unsupported` fails in both: the agent declines without calling the tool. Right answer, unjustified process.
 
 ## Where lesson 08 picks up
 
@@ -291,9 +307,11 @@ Reuse `lessons/02-tool-calling/tools.py` (or a superset) so the difference betwe
 
 ## Open questions to resolve later
 
-- How much does model size affect tool-call reliability? Placeholder in `lessons/01-structured-output/NOTES.md` for the user to fill in by rerunning `--reliability 5` on `openai/gpt-oss-20b`.
-- Does the user's team standardise on a specific agent framework? If so, lesson 13 should target it. Not yet answered.
-- The Anthropic and Ollama adapters have unit-verified logic but have never been run against a live endpoint.
+- **Does the user's team standardise on an agent framework?** If so, lesson 13 should target it. Asked in the first session, never answered. Worth asking again before lesson 13.
+- **The Anthropic and Ollama adapters have never run against a live endpoint.** Their message translation is unit-tested, but nothing has exercised them end to end. A reader who clones this and uses Anthropic is the first real test.
+- **The eval set is too small at 16 cases.** Lesson 7 says so explicitly: one case is 6%, so it cannot resolve small differences. Growing it is the single highest-value improvement available and it is cheap, because scoring is free and only new questions cost tokens.
+- **`currency_unsupported` fails and has not been fixed.** The agent declines without calling the tool. It is left failing on purpose — a real open failure is more useful in the eval set than a case tuned until it passes.
+- Model size vs tool-call reliability (lesson 1's `--reliability 5` on a smaller model) still has an unfilled placeholder in `lessons/01-structured-output/NOTES.md`. Optional.
 
 ## Repo map
 
@@ -395,6 +413,18 @@ deliberate — mention it rather than "fixing" it.
 ## Reading order for a fresh session
 
 1. This file
-2. `docs/00-index.md` — the accumulated key learnings
-3. `src/llmkit/types.py` — the core data model, and it's commented as teaching material
-4. `lessons/01-structured-output/structured.py` — the pattern lessons 2, 3 and 11 all reuse
+2. `docs/00-index.md` — the accumulated key learnings across all lessons
+3. `src/llmkit/types.py` — the core data model, commented as teaching material
+4. `lessons/03-agent-loop/loop.py` — the agent loop everything after it builds on
+5. `lessons/06-testing/test_regressions.py` — the bugs this project actually shipped, which is the fastest way to learn where the sharp edges are
+
+## Recurring lessons, in case only one thing gets read
+
+Seven lessons in, the same handful of ideas keep reappearing. They are worth more than any individual technique:
+
+- **Measure rather than reason.** Almost every finding in this project contradicted an expectation: the token estimator was 91% low, headings-in-chunks did not replicate, the stricter prompt was worse, `--compare` once reported a plausible table with zero compactions.
+- **A small hand-picked sample is a hypothesis, not a finding.** 8 chunks said headings help; 193 said they do not.
+- **Measurement tools fail silently, which makes them the most dangerous code.** A cache that stored scores meant a new scorer never ran. A label matcher scored correct retrievals as misses. Both looked authoritative.
+- **Two measurements that disagree are a gift.** That is the only reason the duplicated label bug was caught.
+- **Errors should be data, not exceptions.** Tool failures as observations is what makes self-correction work at all.
+- **Write down why, not just what.** The `why` on eval cases and the docstrings on regression tests are what make this repo resumable.
