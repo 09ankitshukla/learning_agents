@@ -2,7 +2,11 @@
 name = "learning-agents"
 version = "0.1.0"
 description = "Build LLM agents from scratch: one runnable agent per lesson, local open-source models by default."
-requires-python = ">=3.11"
+# 3.12, raised from 3.11 when lesson 5 arrived: fastembed requires numpy>=2.3,
+# which itself requires Python>=3.12. Worth noting the floor was only ever
+# *claimed* at 3.11 -- every lesson was written and tested on 3.12, so this is
+# also a correction rather than purely a new constraint.
+requires-python = ">=3.12"
 
 # Versions are pinned deliberately. This repo is a teaching artifact -- someone
 # cloning it in a year should get the same behaviour you got. If resolution ever
@@ -18,6 +22,20 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Lesson 5 (retrieval) only. Kept optional so lessons 0-4 install without them.
+#
+# fastembed rather than sentence-transformers on purpose: it runs the embedding
+# model through ONNX, so it needs no PyTorch. That is a ~30 MB quantised model
+# download instead of a multi-hundred-MB torch wheel, and it is fast on CPU --
+# measured 0.02s to embed three texts on this machine, with no GPU.
+#
+# Groq serves no embedding models (verified: chat, safety and speech only), so
+# embeddings have to run locally whichever library you pick.
+retrieval = [
+    "fastembed==0.8.1",
+    "numpy==2.5.3",
+]
+
 dev = [
     "pytest==8.3.3",
     "pytest-asyncio==0.24.0",

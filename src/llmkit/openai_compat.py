@@ -234,6 +234,27 @@ class OpenAICompatClient:
                 f"{self.config.provider} rejected the API key ({exc.status_code}).\n"
                 "Check LLM_API_KEY in .env, or switch back to LLM_PROVIDER=ollama."
             )
+        if exc.status_code == 413:
+            # "Request too large" is a different problem from "too many requests",
+            # and conflating them sends you down the wrong path. 429 means wait;
+            # 413 means the single request you just built does not fit, and waiting
+            # will never help. The fix is context management (lesson 4) or fewer
+            # tools, not a retry.
+            body = exc.body if isinstance(exc.body, dict) else {}
+            error = body.get("error") if isinstance(body.get("error"), dict) else body
+            provider_message = str(error.get("message", "")).strip()
+            return ConfigError(
+                f"{self.config.provider} refused the request as too large (HTTP 413).\n\n"
+                + (f"{self.config.provider} says:\n  {provider_message}\n\n" if provider_message else "")
+                + "Waiting will not help -- this single request exceeds a per-request or\n"
+                "per-minute token limit. Reduce what you send:\n"
+                "  - apply context management (lesson 4): compress tool results,\n"
+                "    trim old exchanges, or summarise\n"
+                "  - return fewer or smaller tool results (lower top_k, truncate)\n"
+                "  - offer fewer tools: every schema is re-sent on every call\n"
+                "  - lower max_tokens if the limit counts input plus output"
+            )
+
         if exc.status_code == 429:
             # Pass the provider's own message through. It usually says which limit
             # was hit (per-minute vs per-day, requests vs tokens) and when to retry,
