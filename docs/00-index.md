@@ -248,15 +248,39 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **Judge design rules:** structured validated output (not regex over prose), reasoning field before verdict field, a failed judge must never pass, never show it the expected answer, rubric in the cache key, temperature 0.
 
-**Cost per success is the number nobody reports.** The strict prompt was 10% cheaper per case and *worse value*, because it failed more. Reporting "tokens down 10%" would have made lesson 7's regression look like an optimisation. 92% of tokens are input, so context management is a cost lever.
+**Cost per success is the number nobody reports.** The strict prompt was 10.2% cheaper per case and only 3.8% cheaper per success, because it failed more — so quoting "tokens down 10%" overstates the benefit by ~2.7x for what was, on accuracy, a regression. **Cost per success discounts a misleading saving rather than reversing it.** (Corrected in lesson 9: this originally claimed cost per success "went the wrong way", which the run files refute. The commentary was hardcoded prose that ignored its own numbers; it is now computed and tested.) 92% of tokens are input, so context management is a cost lever.
 
 **Another silent measurement bug.** The trace rollup double-counted, making every cost figure exactly 2x — nothing crashed, no verdict changed, and a doubled report looks plausible. Third such bug in the project after lesson 5's label matcher and lesson 7's score cache. **The arithmetic in a measurement tool deserves a test even when it is obviously right.**
 
 **What a trace makes obvious:** tool time 5ms against 1.06s of model time (optimising tools is pointless), input outnumbering output 12:1, and half of output tokens being invisible reasoning.
 
-## Lesson 09 — Iteration
+## Lesson 09 — Iteration · [notes](../lessons/09-iteration/NOTES.md)
 
-*Not yet written.*
+**One idea. Measure the ruler before you measure the thing, and write the prediction down first.** The code is thin; the discipline is the content.
+
+**Predictions were right 1 time in 4 (25%).** Graded strictly: calling the win but missing a regression is a miss. The single hit was confirming a diagnosis already established by measurement — every genuine guess about what a prompt would do was wrong, including *where* the collateral damage would land. **That number is the argument for the whole harness.** If prompt intuition were reliable, you could reason your way to a better agent and skip the measuring.
+
+**Read the failure before theorising. It is free and it is the step that gets skipped.** The obvious diagnosis for `currency_unsupported` — "the tool description lists the supported currencies, so the eval is unfair" — was refuted for zero tokens by reading one answer already sitting in `baseline.json`. The agent refused because it believed Bitcoin's price was unknowable, not because of anything it read. The case was right and the agent was wrong.
+
+**Removing the tool's currency list changed nothing.** 0/3 with the supported set hidden entirely, so the tool description was never the cause. And the same "call the tool rather than assuming" sentence worked in the *system prompt* and did nothing in a *tool description*. **Instruction placement matters more than instruction wording.**
+
+**One case many times beats one suite once.** A full run is 33k tokens and tells you the average moved; four repeats of one case is ~5k and tells you whether the case is a signal at all. At n=16 a result usually turns on one case. Three of this lesson's most decisive findings were single-case probes, together costing less than one suite run.
+
+**Two repeats cannot establish a noise floor.** Measured 0/16 flips, which set the detectable threshold to 1 case — then found a case flaking at ~20% hours later. A case failing one run in seven looks perfectly stable across two runs. **A clean result at R=2 is weak evidence of stability, not evidence of determinism.**
+
+**The decision rule reverted a real fix, so the rule changed.** `verify_first` fixed its target case and broke one nobody predicted; the break turned out to be the flake. A net-zero result hanging on an *unpredicted* break now returns `inconclusive` with a re-test instruction. **At one case, a flake and a regression are indistinguishable**, and re-testing costs ~5k tokens against losing the fix.
+
+**Prompt changes reintroduce old bugs at a distance.** "Attempt the most relevant tool" re-triggered lesson 2's phantom tool call — the model invents a tool when the six real ones do not fit — aborting the loop with an empty answer, three lessons later.
+
+**A real improvement can be invisible to the suite.** A prompt change moved a refusal from "I can't look up the price" to "the tool only supports USD, EUR, GBP, INR, JPY, AUD, CAD", and no scorer could see it. **"The metric did not move" and "nothing improved" are different statements.** Combined with a matching scorer change it gave 16/16 for zero tokens — some fixes are only visible in combination, which is the blind spot in strict one-variable discipline.
+
+**Caching and variance are in tension.** Caching makes comparisons reproducible and therefore hides variance. Measuring noise means turning it off and paying full price. One mechanism cannot do both.
+
+**Commentary that ignores its own data is a confident caption on the wrong photograph.** Lesson 8's `--cost-compare` panel was hardcoded prose about one comparison, so it announced "cost per success went the wrong way" for every pair of runs — including one showing an 11% improvement, and including the very comparison it was written for, where cost per success had actually improved 3.8%. Found by pointing the tool at a run that did not exist when it was written. Now derived in `cost_verdict()` and tested. **Narrative text in a measurement tool needs the same tests as the arithmetic.**
+
+**Two more silent measurement bugs, both in lesson 7's harness.** The cache key was blind to tool descriptions, so a tool experiment would have replayed the baseline and reported "no change" with total confidence — the same class as lesson 7's cache-the-score bug. And the dataset fingerprint hashed the *number* of scorers, so swapping one for another left it unchanged and `compare()` claimed apples to apples across runs graded differently. **A cache key that omits a variable turns a measurement tool into a confident liar.**
+
+**Four attempts, nothing kept: 2 revert, 2 inconclusive.** For a lesson about improving an agent that is the honest outcome. `inconclusive` is the most useful verdict and the one teams refuse to say — it means the suite cannot resolve the change, and the follow-up is a bigger dataset, not a bigger opinion.
 
 ## Lesson 10 — Multi-agent
 

@@ -164,6 +164,28 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **Golden set** — a small, hand-checked set of cases you never let regress.
 
+## Iteration
+
+**One-variable experiment** — a run that differs from the baseline in exactly one respect. Change two and a result cannot tell you which one moved the score, so you can neither ship half of it nor explain the rest. Lesson 9 enforces this in code rather than trusting discipline.
+
+**Recorded prediction** — which cases you expect to move, written down *before* the run and never edited. Turns "I had a feeling" into a hit rate. Graded strictly: calling the win but missing a regression is a miss, because in production the regression is the part that matters.
+
+**Noise floor** — how much the suite moves when nothing changes, measured by running an identical configuration repeatedly with caching off. If N cases flip on their own, a net change of N is indistinguishable from doing nothing. **Two repeats cannot establish one** — a case failing one run in seven looks perfectly stable at R=2.
+
+**Flake** — a case whose verdict varies across identical runs. A decision that turns on a flaky case was decided by chance. Distinguish it from a regression by re-running *that one case* several times, which costs a fraction of a suite run.
+
+**Minimum detectable effect** — the smallest change your suite can distinguish from noise. Sets what counts as a result, and is usually larger than anyone assumes.
+
+**Reproducible vs. generalisable** — two different uncertainties, routinely confused. Repeats tell you whether a change reproduces; sample size tells you whether it generalises. Zero flips across repeats says nothing about the second, and at 16 cases the confidence intervals overlap regardless.
+
+**Protected case** — one where a regression is never traded away, whatever the net. Fabrication and sandbox-escape checks: an agent that starts inventing prices has not got slightly worse, it has acquired a different and worse failure mode.
+
+**Inconclusive** — the verdict meaning "the suite cannot resolve this change", as distinct from "the change is bad". The most useful of the three and the one teams refuse to say. The follow-up is a bigger dataset, not a bigger opinion.
+
+**Attempt log / changelog of experiments** — an append-only record of what was tried, including what was rejected and why. A log of only what shipped is worse than none: it lets a measured-and-lost idea be proposed again with nothing in the repo to contradict it.
+
+**Optimising the metric** — changing the system to make the score rise without making the product better. Lesson 9's example: hiding a tool's supported-currency list so the agent is forced to call it. The measured refutation of the underlying diagnosis is what stopped it being shipped.
+
 ## Operations
 
 **Trace / span** — a structured record of a run and its individual steps. How you debug something non-deterministic.

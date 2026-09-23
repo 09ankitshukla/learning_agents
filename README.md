@@ -72,7 +72,7 @@ Note that hosted providers retire models regularly — `check_env.py` prints the
 |---|---|---|---|
 | 07 | [Evaluation](lessons/07-evaluation) | eval datasets, deterministic scorers, fabrication guards, cached runs, regression detection | eval harness + scorecard |
 | 08 | [Judging and tracing](lessons/08-judging-tracing) | LLM-as-judge, calibration, measured verbosity bias, spans, cost per success | trace viewer + cost report |
-| 09 | Iteration | A/B testing prompts, models and tool designs against your evals | a measured improvement |
+| 09 | [Iteration](lessons/09-iteration) | one-variable experiments, recorded predictions, noise floors, keep/revert rules, a changelog of rejections | experiment runner + attempt log |
 
 **Part 4 — Real systems.**
 
@@ -104,20 +104,22 @@ uv run lessons/01-structured-output/extract.py
 
 ## Status
 
-Lessons 00 through 08 are complete and verified against a live model. Lesson 09 is next.
+Lessons 00 through 09 are complete and verified against a live model. Lesson 10 is next.
 
-There's a test suite from lesson 6, and an eval harness from lesson 7:
+There's a test suite from lesson 6, an eval harness from lesson 7, and an experiment log from lesson 9:
 
 ```powershell
 uv sync --all-extras
-uv run pytest lessons                    # 181 tests, offline, ~2 seconds
+uv run pytest lessons                    # 239 tests, offline, ~2 seconds
 uv run pytest lessons -m live            # 8 more, hits the API
 
 uv run lessons/07-evaluation/evaluate.py --show baseline      # 15/16, from a saved run
 uv run lessons/07-evaluation/evaluate.py --compare baseline strict
+uv run lessons/09-iteration/iterate.py --log                  # 4 attempts, rejections included
+uv run lessons/09-iteration/iterate.py --scorecard            # predictions were 1/4 right
 ```
 
-The two committed eval runs let you see a measured regression without spending any tokens.
+All four of those cost nothing. The committed eval runs let you see a measured regression, and the committed attempt log lets you see four experiments — three of which failed — without spending a token.
 
 By the end of lesson 3 you have a working agent: it plans across multiple steps, recovers from its own mistakes, refuses to escape its sandbox, and reports honestly when it gives up. Lesson 4 keeps it inside a token budget and lets a session survive a restart.
 

@@ -1,6 +1,6 @@
 # Project state — read this first when resuming
 
-Last updated: end of lesson 07, before starting lesson 08.
+Last updated: end of lesson 09, before starting lesson 10.
 
 This file exists so you (or an AI assistant in a fresh session) can resume without re-deriving context. If you're an assistant reading this: everything here is current and verified. Don't re-explore the basics; skim this, then read the file list at the bottom.
 
@@ -15,13 +15,16 @@ Everything is installed, committed and pushed. Nothing is half-finished.
 uv sync --all-extras
 
 # 2. the fastest, cheapest confidence check -- no tokens spent
-uv run pytest lessons                    # expect 181 passed, 8 skipped, ~2s
+uv run pytest lessons                    # expect 239 passed, 8 skipped, ~2s
 
 # 3. confirm the live model still works (9 checks, a few seconds)
 uv run lessons/00-setup/check_env.py
 
-# 4. see a measured result without spending tokens
+# 4. see measured results without spending tokens
 uv run lessons/07-evaluation/evaluate.py --compare baseline strict
+uv run lessons/09-iteration/iterate.py --log
+uv run lessons/09-iteration/iterate.py --scorecard
+uv run lessons/09-iteration/iterate.py --replay
 ```
 
 If `uv` is not found in a fresh shell, refresh PATH:
@@ -32,12 +35,13 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 If `check_env.py` says the model is unavailable, Groq retired it. The script prints what is currently served; pick one and update `LLM_MODEL` in `.env`. This has already happened once, and the served model count has drifted from 14 to 11 over the project.
 
-**To carry on building: lesson 09, iteration.** The full plan is in "Where lesson 09 picks up" below. No decisions are outstanding — proceed unless the user wants to change direction.
+**To carry on building: lesson 10, multi-agent.** The full plan is in "Where lesson 10 picks up" below. No decisions are outstanding — proceed unless the user wants to change direction.
 
-**Two habits now expected of every change, because the tooling exists:**
+**Three habits now expected of every change, because the tooling exists:**
 
 1. Run `uv run pytest lessons` before and after. It is free and takes two seconds.
 2. If the change could affect agent behaviour, re-run the eval: `evaluate.py --run something --model openai/gpt-oss-20b`, then `--compare baseline something`. Cached executions mean a re-score costs nothing.
+3. If a result turns on one or two cases, **recheck those cases before believing it**: `iterate.py --recheck CASE --experiment EXP --repeats 4`, and again with `--experiment baseline` as the control. Lesson 9 measured a case flaking at ~20% after a two-repeat noise floor said nothing flipped at all. A suite-level noise floor does not tell you about the one case in front of you.
 
 Every bug fixed from here should also gain a test in `lessons/06-testing/test_regressions.py`. That file is the project's honest changelog.
 
@@ -66,17 +70,20 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 06 — Testing | **Complete. 111 offline tests, all passing** |
 | 07 — Evaluation | **Complete. 15/16 baseline, measured regression demonstrated** |
 | 08 — Judging and tracing | **Complete. Judge calibrated at 90%, verbosity bias measured** |
-| 09–13 | Planned only. See the curriculum table in the root README. |
+| 09 — Iteration | **Complete. 4 attempts logged, predictions 1/4, nothing kept** |
+| 10–13 | Planned only. See the curriculum table in the root README. |
 
-**There is a test suite and an eval harness now. Run both before and after any change:**
+**There is a test suite, an eval harness and an experiment log now. Run the first before and after any change:**
 
 ```powershell
 uv sync --all-extras                      # NOTE: --all-extras, or pytest disappears
-uv run pytest lessons                     # 153 tests, offline, ~2 seconds
+uv run pytest lessons                     # 239 tests, offline, ~2 seconds
 uv run pytest lessons -m live             # 8 more, costs tokens
 
 uv run lessons/07-evaluation/evaluate.py --show baseline        # free, from a saved run
 uv run lessons/07-evaluation/evaluate.py --compare baseline strict
+uv run lessons/09-iteration/iterate.py --list                   # free
+uv run lessons/09-iteration/iterate.py --log                    # free
 ```
 
 Gotcha worth knowing: `uv sync --extra retrieval` **removes** pytest, because uv syncs to exactly the extras you name. Always use `--all-extras`.
@@ -163,6 +170,16 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 **Groq serves no embedding models** (verified: chat, safety classifiers, speech only). Lesson 5 embeds locally with `fastembed`, chosen over `sentence-transformers` because it uses ONNX and needs no PyTorch.
 
+**Temperature 0 is not determinism, and two repeats will not prove otherwise.** Lesson 9 measured 0 of 16 cases flipping across two identical uncached runs, concluded the suite could resolve a single-case change, and then found a case flaking at roughly 20% within the same session. A case failing one run in seven has a good chance of looking perfectly stable at R=2. Use at least three repeats for a suite-level floor, and **when a decision turns on one case, recheck that case directly** — four repeats of one case costs ~5,000 tokens against ~33,000 for a suite run and answers a sharper question.
+
+**The cheapest useful measurement is one case, many times.** Three of lesson 9's most decisive findings came from single-case probes, together costing less than one suite run: two refuted diagnoses and one exposed flake. Reach for `iterate.py --recheck` before `--try`.
+
+**A prompt change can reintroduce a bug from five lessons earlier.** Lesson 9's `verify_first` prompt ("attempt the most relevant tool before refusing") re-triggered lesson 2's phantom tool call: the model requests a tool that was never offered when the real ones do not fit, and `run_agent` aborts with an empty answer. Nothing about the loop changed; only the prompt did.
+
+**Hardcoded commentary in a measurement tool is a bug.** Lesson 8's `--cost-compare` panel was fixed prose describing the baseline-vs-strict result, so it printed "cost per success went the wrong way" for every comparison — including one that showed an 11% improvement, and including baseline-vs-strict itself, where cost per success had actually improved 3.8% (not worsened). Found in lesson 9 by pointing the tool at a run that did not exist when the prose was written. Now computed by `cost_verdict()` in `tracing.py` with four tests, and the claim is corrected in lesson 8's README/NOTES and `docs/00-index.md`. **The narrative in a measurement tool needs tests as much as its arithmetic does** — this is the fourth silent measurement bug in the project.
+
+**Instruction placement beats instruction wording, at least on this model.** The same sentence — "call this tool to check rather than assuming" — changed behaviour in the system prompt and did nothing in a tool description (0/3). Before spending an afternoon rewording tool descriptions, test whether this model reads them as instructions at all.
+
 ## Measured results worth keeping
 
 On `openai/gpt-oss-120b` via Groq:
@@ -183,7 +200,42 @@ On `openai/gpt-oss-20b` (used for evals, separate quota):
 - Lesson 7 strict-prompt variant: **14/16 (88%)** — a *regression*. The stricter prompt reads better and is worse.
 - `currency_unsupported` fails in both: the agent declines without calling the tool. Right answer, unjustified process.
 
-## Where lesson 09 picks up
+Lesson 9, on the same model and against the same baseline (~165,000 tokens across seven experiments and five rechecks):
+
+- **Prediction accuracy: 1 in 4.** Graded strictly — calling the win but missing a regression is a miss. The one hit was confirming a diagnosis already established by measurement, so every genuine guess about prompt behaviour was wrong.
+- **Noise floor, 2 uncached repeats: 0 of 16 cases flipped.** Both runs 15/16, every per-case verdict identical. **Then contradicted the same session**: `files_quote_definition` under the `verify_first` prompt measured 8/10 (~20% failure, `stop_reason=phantom_tool`) against 4/4 clean on the control. Two repeats cannot establish a noise floor.
+- `verify_conversion` (narrow prompt): no metric change, 830 tokens cheaper, but the refusal moved from "I can't look up the Bitcoin price" to "the tool only supports USD, EUR, GBP, INR, JPY, AUD, CAD". A real improvement no scorer could see.
+- `verify_first` (broad prompt): fixed `currency_unsupported`, tool-choice accuracy 91% → **100%**, 1,943 tokens cheaper, and broke `files_quote_definition` via a phantom tool call. Unresolved on purpose.
+- `combined` (prompt + rescored case, forced, **zero tokens** because both halves were cached): **16/16**, the only 100% in the project, reproducible 4/4, cost per success 0.89x. Still recorded `inconclusive` — +1 case is below the provisional threshold.
+- `hide_currency_list` and `loud_currency_list`: **0/3 each** on single-case probes costing ~5,000 tokens instead of 33,000. Removing the tool's supported-currency list entirely did not make the agent call the tool, so the obvious diagnosis was simply wrong. The same instruction worked in the system prompt and did nothing in a tool description.
+- **Final: 4 attempts, 2 revert, 2 inconclusive, 0 kept.**
+
+## Where lesson 10 picks up
+
+Lesson 10 is multi-agent patterns, and for the first time in a while there is a real question to answer rather than a capability to add: **is a second agent ever worth it?** Lesson 9's machinery can answer that, and it should be pointed at the question from the start rather than bolted on afterwards.
+
+What is already available:
+
+- **`ToolRegistry.subset(names)`** — written in lesson 2 and never used. It exists precisely so different agents get different powers, which is the whole premise of delegation.
+- **`run_agent`'s `initial_messages`** — lesson 4's resume hook. A handoff is a conversation continued by someone else, so this is most of what a handoff needs.
+- **Lesson 7's harness, lesson 9's experiment runner** — a two-agent pipeline is just another config. It should be an `Experiment` with a recorded prediction, measured against the same 16-case baseline, and judged by the same keep/revert rule.
+- **Lesson 8's cost per success** — the number that decides this. Two agents means at least two full context re-sends per step, so the cost question is not a footnote.
+- **Lesson 3's `Trajectory` and lesson 8's spans** — nesting a sub-agent's trace inside the parent's is the natural shape, and `Span` already supports children.
+
+Lesson 10 should build:
+
+1. **A delegating agent** — one agent that can call another as a tool. The cleanest framing available: a sub-agent *is* a tool whose implementation happens to be another loop, so lesson 2's dispatcher already covers the boundary.
+2. **Handoff versus delegation.** Handoff passes control and does not come back; delegation gets an answer and continues. They fail differently and the distinction is usually blurred.
+3. **Shared state, and why it is the hard part.** Two agents with separate message lists cannot see each other's work; two agents sharing one list re-send everything twice. Both are bad in different ways, and lesson 4's context management is the only reason either is affordable.
+4. **A research / write / critique pipeline** — the canonical example, and a chance to see the critique step catch something a single agent would have shipped.
+5. **The honest comparison.** Run the multi-agent version through lesson 7's suite as a lesson 9 experiment, with the prediction written first. **The expected answer is that it is worse and more expensive on this dataset**, because the 16 cases are mostly single-tool questions that need no delegation. Getting a null or negative result here is the useful outcome: it is the evidence for when *not* to reach for multiple agents, which is most of the time.
+6. **Failure modes specific to multi-agent** — infinite delegation (agent A asks B, B asks A), a sub-agent's refusal being misread as an answer, and error messages losing their origin as they pass up through layers.
+
+Budget note: a delegating run costs roughly the sum of its agents, so an eval run could be two or three times the usual ~33,000 tokens. Prefer single-case probes (`iterate.py --recheck`) while developing, and run the full suite once at the end.
+
+A caution worth stating up front: multi-agent is the most over-applied pattern in this space. The lesson should end with a reader who can say *why* a second agent is not the answer to their problem, and that is more valuable than a working pipeline.
+
+## Where lesson 09 picked up (done)
 
 Lesson 9 is iteration, and every tool it needs now exists. The point is to close the loop: change one variable, measure, keep or revert — and to show that doing this properly is unglamorous and works.
 
@@ -333,8 +385,12 @@ Reuse `lessons/02-tool-calling/tools.py` (or a superset) so the difference betwe
 
 - **Does the user's team standardise on an agent framework?** If so, lesson 13 should target it. Asked in the first session, never answered. Worth asking again before lesson 13.
 - **The Anthropic and Ollama adapters have never run against a live endpoint.** Their message translation is unit-tested, but nothing has exercised them end to end. A reader who clones this and uses Anthropic is the first real test.
-- **The eval set is too small at 16 cases.** Lesson 7 says so explicitly: one case is 6%, so it cannot resolve small differences. Growing it is the single highest-value improvement available and it is cheap, because scoring is free and only new questions cost tokens.
-- **`currency_unsupported` fails and has not been fixed.** The agent declines without calling the tool. It is left failing on purpose — a real open failure is more useful in the eval set than a case tuned until it passes.
+- **The eval set is too small at 16 cases.** Lesson 7 says so explicitly: one case is 6%, so it cannot resolve small differences. Lesson 9 hit this from every direction — every Wilson interval overlapped, and the one confirmed 16/16 result is still recorded `inconclusive` because of it. Growing the dataset is the single highest-value improvement available and it is cheap, because scoring is free and only new questions cost tokens.
+- **`currency_unsupported` has a confirmed fix that has not been adopted.** `verify_conversion` + the `documented_refusal` scorer gives 16/16, reproducible 4/4, cheaper than the baseline — but it is two variables, one of which changes the eval, and +1 case is below the detection threshold. Left as a candidate rather than shipped, which is the honest state.
+- **`verify_first` is an unresolved trade-off.** It fixes the target case and takes tool-choice accuracy to 100%, and it flakes ~20% on `files_quote_definition` via a phantom tool call. The better product fix is probably to handle `PhantomToolCall` in `run_agent` as a recoverable observation ("that tool does not exist, here are the ones that do") instead of aborting the run. Untested.
+- **Only one case has a measured flake rate.** The other fifteen are assumed stable on the strength of two repeats, which lesson 9 demonstrated is not enough.
+- **The noise floor on disk (`lessons/09-iteration/noise.json`) is provisional**, at 2 repeats. `--noise --repeats 3` costs two full runs and would replace it with something usable.
+- **`terse_prompt` and `more_steps` are defined, predicted and unrun** — the day's token budget went on rechecks instead. Both are one command away.
 - Model size vs tool-call reliability (lesson 1's `--reliability 5` on a smaller model) still has an unfilled placeholder in `lessons/01-structured-output/NOTES.md`. Optional.
 
 ## Repo map
@@ -421,6 +477,7 @@ lessons/07-evaluation/
   conftest.py + test_scorers.py  42 tests for the scorers and dataset integrity
   runs/baseline.json           committed: 15/16 on gpt-oss-20b
   runs/strict.json             committed: 14/16, the measured regression
+  runs/exp_*.json, noise_1.json  committed: lesson 9's experiment runs live here too
   .cache/                      cached executions (gitignored, model-specific)
 
 lessons/08-judging-tracing/
@@ -428,9 +485,32 @@ lessons/08-judging-tracing/
   judge.py                     THE lesson: rubric judge, naive vs mitigated prompts
   tracing.py                   spans, trace tree, price table, CostReport
   observe.py                   CLI: --calibrate/--bias/--trace/--cost/--cost-compare
-  conftest.py + test_judge_tracing.py   28 tests using lesson 6's ScriptedClient
+  conftest.py + test_judge_tracing.py   33 tests using lesson 6's ScriptedClient
   traces/, .cache/             gitignored (illustrative runs, regenerable verdicts)
+
+lessons/09-iteration/
+  README.md                    the loop, the decision rule, what actually happened
+  experiments.py               THE lesson: Config, Experiment, one-variable rule,
+                               7 experiments with predictions recorded before running
+  iteration.py                 noise floor, decide(), Changelog, prediction scoring
+  iterate.py                   CLI: --list/--try/--noise/--recheck/--log/--scorecard/--replay
+  conftest.py + test_iteration.py   53 tests, mostly pinning the decision rules
+  attempts.json                committed: 4 attempts, 2 revert 2 inconclusive, 0 kept
+  noise.json                   committed: the (provisional, 2-repeat) noise floor
 ```
+
+Lesson 9 changed three files outside its own folder, all small and all justified in
+comments at the point of change:
+
+- `lessons/07-evaluation/harness.py` — `cache_key` gained a `variant` component (the
+  cache was blind to tool descriptions), `_dataset_fingerprint` became v2 and tagged
+  (it was blind to scorer swaps), `run_eval` gained `variant_key` / `extra_config` and
+  records which cases came from cache, and `EvalRun` gained `tokens_actually_spent`.
+- `lessons/07-evaluation/scorers.py` — every scorer factory now attaches a `label` to
+  the function it returns, so a scorer can be identified before it has been run. New
+  helper `scorer_label`. No `ScoreResult.name` values changed.
+- `src/llmkit/tools.py` — `ToolRegistry.tools` property, so a variant registry can be
+  built with the same functions and different descriptions without touching `_tools`.
 
 Note lesson 5 imports lesson 4's `ContextManager` and lesson 3's `run_agent` and
 `build_registry` via explicit `sys.path` inserts. Lesson folders are not importable
