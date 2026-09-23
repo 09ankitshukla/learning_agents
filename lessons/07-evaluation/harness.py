@@ -302,12 +302,26 @@ def run_case(
     use_cache: bool = True,
     on_progress=None,
     variant_key: str = "",
+    correct_execution=None,
 ) -> tuple[CaseResult, bool]:
     """Execute one case and score it. Returns (result, came_from_cache).
 
     `variant_key` describes anything about this execution that the cache key cannot
     see from its other arguments -- in practice, a modified tool registry. See
     `cache_key`.
+
+    `correct_execution(trajectory, execution) -> Execution` lets a caller repair the
+    record before it is scored or cached. Added for lesson 10, where a delegating
+    agent's `tool_sequence` reads `["ask_calculator"]` because the calculator ran one
+    level down, inside a tool call, where `Trajectory` cannot see it -- so
+    `used_tools(["calculate"])` fails on a correct answer. Ten of the sixteen cases
+    assert `used_tools`, so without this the suite reports a large regression that is
+    an artifact of the instrument.
+
+    It corrects the *execution*, not the score, which keeps lesson 7's rule intact:
+    what the agent did is a fact worth caching, how we judge it is recomputed every
+    time. A hook that adjusted the verdict instead would be the cache-the-score bug
+    wearing a different hat.
     """
     from loop import run_agent
 
@@ -338,6 +352,8 @@ def run_case(
                 completion_tokens=trajectory.usage.completion_tokens,
                 latency_s=trajectory.usage.latency_s,
             )
+            if correct_execution is not None:
+                execution = correct_execution(trajectory, execution)
             if use_cache:
                 _store_execution(key, execution)
         except Exception as exc:  # noqa: BLE001
@@ -397,6 +413,7 @@ def run_eval(
     on_progress=None,
     variant_key: str = "",
     extra_config: dict[str, Any] | None = None,
+    correct_execution=None,
 ) -> tuple[EvalRun, int]:
     """Run the suite. Returns (run, number_served_from_cache)."""
     selected = cases if cases is not None else CASES
@@ -428,6 +445,7 @@ def run_eval(
             use_cache=use_cache,
             on_progress=on_progress,
             variant_key=variant_key,
+            correct_execution=correct_execution,
         )
         run.results.append(result)
         cache_hits += int(from_cache)
