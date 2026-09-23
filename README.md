@@ -71,7 +71,7 @@ Note that hosted providers retire models regularly — `check_env.py` prints the
 | # | Lesson | Concepts | Deliverable |
 |---|---|---|---|
 | 07 | [Evaluation](lessons/07-evaluation) | eval datasets, deterministic scorers, fabrication guards, cached runs, regression detection | eval harness + scorecard |
-| 08 | Judging and tracing | LLM-as-judge and its biases, spans, token/cost/latency accounting | trace viewer + cost report |
+| 08 | [Judging and tracing](lessons/08-judging-tracing) | LLM-as-judge, calibration, measured verbosity bias, spans, cost per success | trace viewer + cost report |
 | 09 | Iteration | A/B testing prompts, models and tool designs against your evals | a measured improvement |
 
 **Part 4 — Real systems.**
@@ -104,13 +104,13 @@ uv run lessons/01-structured-output/extract.py
 
 ## Status
 
-Lessons 00 through 07 are complete and verified against a live model. Lesson 08 is next.
+Lessons 00 through 08 are complete and verified against a live model. Lesson 09 is next.
 
 There's a test suite from lesson 6, and an eval harness from lesson 7:
 
 ```powershell
 uv sync --all-extras
-uv run pytest lessons                    # 153 tests, offline, ~2 seconds
+uv run pytest lessons                    # 181 tests, offline, ~2 seconds
 uv run pytest lessons -m live            # 8 more, hits the API
 
 uv run lessons/07-evaluation/evaluate.py --show baseline      # 15/16, from a saved run

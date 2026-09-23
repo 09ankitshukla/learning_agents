@@ -15,7 +15,7 @@ Everything is installed, committed and pushed. Nothing is half-finished.
 uv sync --all-extras
 
 # 2. the fastest, cheapest confidence check -- no tokens spent
-uv run pytest lessons                    # expect 153 passed, 8 skipped, ~2s
+uv run pytest lessons                    # expect 181 passed, 8 skipped, ~2s
 
 # 3. confirm the live model still works (9 checks, a few seconds)
 uv run lessons/00-setup/check_env.py
@@ -32,7 +32,7 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 If `check_env.py` says the model is unavailable, Groq retired it. The script prints what is currently served; pick one and update `LLM_MODEL` in `.env`. This has already happened once, and the served model count has drifted from 14 to 11 over the project.
 
-**To carry on building: lesson 08, judging and tracing.** The full plan is in "Where lesson 08 picks up" below. No decisions are outstanding — proceed unless the user wants to change direction.
+**To carry on building: lesson 09, iteration.** The full plan is in "Where lesson 09 picks up" below. No decisions are outstanding — proceed unless the user wants to change direction.
 
 **Two habits now expected of every change, because the tooling exists:**
 
@@ -65,7 +65,8 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 05 — Retrieval | **Complete, verified against a live model** |
 | 06 — Testing | **Complete. 111 offline tests, all passing** |
 | 07 — Evaluation | **Complete. 15/16 baseline, measured regression demonstrated** |
-| 08–13 | Planned only. See the curriculum table in the root README. |
+| 08 — Judging and tracing | **Complete. Judge calibrated at 90%, verbosity bias measured** |
+| 09–13 | Planned only. See the curriculum table in the root README. |
 
 **There is a test suite and an eval harness now. Run both before and after any change:**
 
@@ -182,7 +183,30 @@ On `openai/gpt-oss-20b` (used for evals, separate quota):
 - Lesson 7 strict-prompt variant: **14/16 (88%)** — a *regression*. The stricter prompt reads better and is worse.
 - `currency_unsupported` fails in both: the agent declines without calling the tool. Right answer, unjustified process.
 
-## Where lesson 08 picks up
+## Where lesson 09 picks up
+
+Lesson 9 is iteration, and every tool it needs now exists. The point is to close the loop: change one variable, measure, keep or revert — and to show that doing this properly is unglamorous and works.
+
+What is already available:
+
+- **Lesson 7's harness** — `evaluate.py --run NAME`, `--compare A B`, cached executions so a re-score is free, and a `Comparison` that reports what *broke* rather than only the average.
+- **Lesson 8's cost report** — `--cost-compare A B`, including cost per success, which already reframed one decision.
+- **Lesson 8's judge** — calibrated at 90%, for criteria code cannot check.
+- **Lesson 8's traces** — for diagnosing *why* a specific case failed without re-running it.
+- **Two committed runs** — `baseline` (15/16) and `strict` (14/16), a real regression to work from.
+
+Lesson 09 should build:
+
+1. **A disciplined loop, written down.** Hypothesis → change exactly one variable → measure → read the failures → keep or revert. The discipline is the content; the code is thin.
+2. **A real improvement, earned.** `currency_unsupported` is the obvious target: it fails because the agent declines without calling the tool. Try a prompt change, measure, and see whether it fixes that case *without breaking others* — which is exactly what `--compare` exists to catch.
+3. **A demonstration that intuition loses.** Lesson 7 already has one: the "better" strict prompt was worse. Add one or two more variables (tool description wording, `max_steps`, `reasoning_effort`) and show the hit rate of guessing.
+4. **Variance versus signal.** Run the same configuration twice and compare. If two identical runs differ by a case, then a one-case "improvement" is noise — and that number is the floor on what the suite can detect.
+5. **A changelog of attempts**, including the failures. What was tried and rejected is more useful than a list of what shipped, and it stops the same idea being retried.
+6. **Cost-aware decisions.** An accuracy gain that doubles tokens may not be worth taking. Lesson 8's cost per success is how you decide.
+
+Watch the token budget: each full eval run is ~33k tokens on `gpt-oss-20b`, and lesson 9 is inherently several runs. Cached executions mean prompt variants cost once each.
+
+## Where lesson 08 picked up (done)
 
 Lesson 7's scorers are all deterministic, and that was deliberate: exhaust the free, unambiguous checks before letting a model grade a model. What they cannot reach is anything subjective — "is this explanation clear?", "did it cite the right source?", "is this refusal appropriately worded rather than merely containing the word 'cannot'?"
 
@@ -398,6 +422,14 @@ lessons/07-evaluation/
   runs/baseline.json           committed: 15/16 on gpt-oss-20b
   runs/strict.json             committed: 14/16, the measured regression
   .cache/                      cached executions (gitignored, model-specific)
+
+lessons/08-judging-tracing/
+  README.md                    judge design, bias A/B, cost per success, 6 exercises
+  judge.py                     THE lesson: rubric judge, naive vs mitigated prompts
+  tracing.py                   spans, trace tree, price table, CostReport
+  observe.py                   CLI: --calibrate/--bias/--trace/--cost/--cost-compare
+  conftest.py + test_judge_tracing.py   28 tests using lesson 6's ScriptedClient
+  traces/, .cache/             gitignored (illustrative runs, regenerable verdicts)
 ```
 
 Note lesson 5 imports lesson 4's `ContextManager` and lesson 3's `run_agent` and

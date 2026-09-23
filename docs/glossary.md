@@ -146,7 +146,19 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **Tool-choice accuracy** — how often the agent picked the right tool.
 
-**LLM-as-judge** — using a model to grade another model's output against a rubric. Scalable, and biased in known ways (toward verbosity, and toward its own outputs).
+**LLM-as-judge** — using a model to grade another model's output against a rubric. Reaches what code cannot (clarity, faithfulness) but cannot see the trajectory, so it complements deterministic scorers rather than replacing them.
+
+**Judge calibration** — measuring a judge's agreement with checks already known to be correct, before trusting it where nothing can check it. A too-lenient judge is dangerous (it hides regressions); a too-strict one is merely annoying.
+
+**Verbosity bias** — a judge preferring longer answers for the same content. Measured in lesson 8: a naive rubric preferred a padded answer, and three sentences telling the judge to ignore length reversed the preference.
+
+**Position bias** — in pairwise comparison, preferring whichever answer is presented first. Detect it by running both orders and discarding results that are not mirrored.
+
+**Self-preference bias** — a model favouring output from its own family. Testing it honestly requires a genuinely different model.
+
+**Span** — one timed unit of work in a trace (a model call, a tool execution). Nesting spans makes a trace a tree, which shows which model turn triggered which work.
+
+**Cost per success** — total cost divided by *successful* answers. The figure that matters and the one nobody reports: an agent at half the price that fails twice as often costs more per usable answer.
 
 **Regression** — a change that improves one case while breaking others. The reason you need a dataset rather than one example.
 

@@ -230,9 +230,29 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **Report what broke, not just the average.** An aggregate can rise while security or fabrication cases regress, and one such loss is not offset by two wins elsewhere. Warn when two runs differ in more than one variable.
 
-## Lesson 08 — Judging and tracing
+## Lesson 08 — Judging and tracing · [notes](../lessons/08-judging-tracing/NOTES.md)
 
-*Not yet written.*
+**Two ideas. A judge is a measuring instrument, so calibrate it before trusting it.** And **tracing is a view, not a collection problem** — lesson 3's `Trajectory` already held every step, token count and latency, so `build_trace` is a pure transformation. That is what building observability in from the start actually buys.
+
+**Calibrate first, not last.** Measured 9/10 agreement (90%) against lesson 7's deterministic verdicts. **A too-lenient judge is the dangerous one** — it inflates scores and hides regressions; a too-strict one is merely annoying.
+
+**A judge cannot see the trajectory.** The single disagreement was structural, not an error: code failed `currency_unsupported` because the agent never called the tool, while the judge passed the *answer*, which was fine. A judge cannot know an agent was right by luck, took nine steps instead of two, or ignored its tools. **So judges complement deterministic scorers; they do not replace them.**
+
+**Verbosity bias is real and three sentences fix it.** Naive rubric preferred the padded answer in both orders; the mitigated rubric preferred the terse one. Same model, same two correct answers — the only difference being an instruction to ignore length, confidence and fluency. **A judge without it rewards an agent for being more expensive.**
+
+**Run the A/B, not just the careful version.** Testing only the mitigated rubric would have shown "no bias found" — the wrong conclusion, since it was the mitigation working invisibly.
+
+**Absolute scoring beat pairwise.** Both answers passed under both rubrics against an explicit factual criterion. Pairwise forces a preference even when both are correct, and that is when style decides. If you must use pairwise, run both orders and discard unmirrored verdicts.
+
+**Test the judge with a confidently wrong answer.** The cheapest check there is. A judge rewarding fluency approves every plausible mistake.
+
+**Judge design rules:** structured validated output (not regex over prose), reasoning field before verdict field, a failed judge must never pass, never show it the expected answer, rubric in the cache key, temperature 0.
+
+**Cost per success is the number nobody reports.** The strict prompt was 10% cheaper per case and *worse value*, because it failed more. Reporting "tokens down 10%" would have made lesson 7's regression look like an optimisation. 92% of tokens are input, so context management is a cost lever.
+
+**Another silent measurement bug.** The trace rollup double-counted, making every cost figure exactly 2x — nothing crashed, no verdict changed, and a doubled report looks plausible. Third such bug in the project after lesson 5's label matcher and lesson 7's score cache. **The arithmetic in a measurement tool deserves a test even when it is obviously right.**
+
+**What a trace makes obvious:** tool time 5ms against 1.06s of model time (optimising tools is pointless), input outnumbering output 12:1, and half of output tokens being invisible reasoning.
 
 ## Lesson 09 — Iteration
 
