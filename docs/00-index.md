@@ -282,9 +282,29 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **Four attempts, nothing kept: 2 revert, 2 inconclusive.** For a lesson about improving an agent that is the honest outcome. `inconclusive` is the most useful verdict and the one teams refuse to say — it means the suite cannot resolve the change, and the follow-up is a bigger dataset, not a bigger opinion.
 
-## Lesson 10 — Multi-agent
+## Lesson 10 — Multi-agent · [notes](../lessons/10-multi-agent/NOTES.md)
 
-*Not yet written.*
+**One idea. A sub-agent is a tool whose implementation is another agent loop.** `run_agent` unchanged, wire protocol unchanged, lesson 2's dispatcher still the security boundary. It needed exactly one previously-unused thing — `ToolRegistry.subset` — and nothing else. Every multi-agent framework is this plus naming, which means the content is not *how* to delegate but the four things that break once you do, all silently.
+
+**Given its own tools, the coordinator does not delegate.** Full team available on a two-part question: zero delegations, zero sub-agent tokens. It used `search_files` and `calculate` itself, which was the correct decision. **A capable agent routes around your team.**
+
+**The tax for a team you never call is ~30%.** Two cases where nothing was delegated still cost 30% and 33% more than solo — three extra tool schemas and a longer coordinator prompt, re-sent every step. Forcing delegation with a pure router cost **+56%** on the same question.
+
+**76% of a delegating run's tokens are invisible to `Trajectory`.** Sub-agent model calls happen inside `registry.dispatch()`, which lesson 3's `Trajectory` does not look at — it was written before sub-agents existed. Parent accounting showed 2,265 of 9,438 actual tokens, so **read off `Trajectory.usage` the expensive architecture looks 62% cheaper than the solo one** when it is 56% dearer. Lesson 7's per-case counts and lesson 8's `CostReport` inherit the error. Fifth silent measurement bug in the project, and the first predicted rather than discovered.
+
+**The same blind spot breaks the scorers, which is worse.** `arith_precision` failed under delegation on both models, reproducibly — and the answer was correct. What failed was `used_tools(["calculate"])`, because the parent's sequence reads `["ask_calculator"]`. **10 of 16 eval cases assert `used_tools` and an 11th asserts `answered_without_tools`**, so most process checks silently measure the wrong thing once work is delegated, and a full suite run would have reported a regression manufactured by the harness. Fixed by expanding delegations into the tools actually used — and nothing new had to be recorded, because the names were already in the log. **A view problem, not a collection problem**, exactly like lesson 8's traces.
+
+**A sub-agent's failure looks exactly like its answer** — both are a string returned from a tool. Lesson 6's "COMPLETED ≠ correct", one level deeper and invisible. So every non-completion is raised as an error with partial output marked UNVERIFIED, and a failed pipeline stage stops the pipeline rather than laundering a failure into a confident answer three stages later.
+
+**If you know the sequence in advance, a pipeline beats a delegating agent** — otherwise you pay a model to make a decision you already made. Delegation earns its cost only when the route depends on what is found. The price of that predictability: **a pipeline cannot recover.** The first run died in stage one when the researcher stalled, and produced nothing.
+
+**Sharing the whole conversation doubled the cost and bought nothing.** relay → shared was +99% tokens and +160% time for the same critic verdict. It is the only way a critic can verify a quotation rather than trust a paraphrase, so not worthless — but point at a reason before paying for it.
+
+**Recursion needs its own guard.** Lesson 3's step cap does not catch it: a nested delegation is one tool call that takes a while. Depth is enforced by *withholding* the delegation tools — a tool the model cannot see is a tool it cannot be talked into using. Breadth needs a separate counter.
+
+**Two descriptions, two audiences.** A sub-agent's `description` is read by the parent to decide whether to delegate; its `system_prompt` is read by the sub-agent to decide how to behave. Writing one and reusing it for both is the most common multi-agent mistake.
+
+**Five probes at ~25k tokens beat an 82k suite run.** `--evaluate` is implemented and deliberately unrun: the probes had already shown delegation fixed nothing, cost 30–90% more, and produced one apparent regression that was a measurement artifact. Lesson 9's method applied rather than described. The prediction's *direction* was confirmed and its *specifics* were wrong — it named two cases that passed and misattributed the third. Same pattern as lesson 9: **predicting that something will break is far easier than predicting what.**
 
 ## Lesson 11 — Guardrails and failure modes
 

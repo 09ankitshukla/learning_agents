@@ -1,6 +1,6 @@
 # Project state — read this first when resuming
 
-Last updated: end of lesson 09, before starting lesson 10.
+Last updated: end of lesson 10, before starting lesson 11.
 
 This file exists so you (or an AI assistant in a fresh session) can resume without re-deriving context. If you're an assistant reading this: everything here is current and verified. Don't re-explore the basics; skim this, then read the file list at the bottom.
 
@@ -15,7 +15,7 @@ Everything is installed, committed and pushed. Nothing is half-finished.
 uv sync --all-extras
 
 # 2. the fastest, cheapest confidence check -- no tokens spent
-uv run pytest lessons                    # expect 239 passed, 8 skipped, ~2s
+uv run pytest lessons                    # expect 281 passed, 8 skipped, ~2s
 
 # 3. confirm the live model still works (9 checks, a few seconds)
 uv run lessons/00-setup/check_env.py
@@ -35,7 +35,7 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 If `check_env.py` says the model is unavailable, Groq retired it. The script prints what is currently served; pick one and update `LLM_MODEL` in `.env`. This has already happened once, and the served model count has drifted from 14 to 11 over the project.
 
-**To carry on building: lesson 10, multi-agent.** The full plan is in "Where lesson 10 picks up" below. No decisions are outstanding — proceed unless the user wants to change direction.
+**To carry on building: lesson 11, guardrails and failure modes.** The full plan is in "Where lesson 11 picks up" below. No decisions are outstanding — proceed unless the user wants to change direction.
 
 **Three habits now expected of every change, because the tooling exists:**
 
@@ -71,13 +71,14 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 07 — Evaluation | **Complete. 15/16 baseline, measured regression demonstrated** |
 | 08 — Judging and tracing | **Complete. Judge calibrated at 90%, verbosity bias measured** |
 | 09 — Iteration | **Complete. 4 attempts logged, predictions 1/4, nothing kept** |
-| 10–13 | Planned only. See the curriculum table in the root README. |
+| 10 — Multi-agent | **Complete. Delegation measured as 30–90% dearer and no more accurate** |
+| 11–13 | Planned only. See the curriculum table in the root README. |
 
 **There is a test suite, an eval harness and an experiment log now. Run the first before and after any change:**
 
 ```powershell
 uv sync --all-extras                      # NOTE: --all-extras, or pytest disappears
-uv run pytest lessons                     # 239 tests, offline, ~2 seconds
+uv run pytest lessons                     # 281 tests, offline, ~2 seconds
 uv run pytest lessons -m live             # 8 more, costs tokens
 
 uv run lessons/07-evaluation/evaluate.py --show baseline        # free, from a saved run
@@ -118,7 +119,7 @@ Suggested next commit style: one per lesson, `feat(lesson-04): ...`.
 
 ## Environment (already set up, don't redo)
 
-- **`uv` 0.12.13** installed via winget → `C:\Users\shhankit\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_*\uv.exe`
+- **`uv` 0.12.13** installed via winget â†’ `C:\Users\shhankit\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_*\uv.exe`
 - **Python 3.12.14** installed via `uv python install`. `requires-python` is now **>=3.12**, raised from 3.11 when lesson 5 arrived (fastembed needs numpy>=2.3 needs 3.12). 3.11 was only ever claimed, never tested.
 - **`.venv`** created via `uv sync`. Lesson 5 needs `uv sync --extra retrieval`, which adds fastembed + numpy + onnxruntime.
 - **`.env`** exists and works. Provider is **Groq**, model **`openai/gpt-oss-120b`**.
@@ -154,7 +155,7 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 **GPT-OSS is a reasoning model.** It spends most of `max_tokens` on hidden deliberation (measured: 74–93% of output tokens). Too small a budget returns an **empty string** with `finish_reason="length"` — request succeeded, tokens billed, no answer. Keep `max_tokens >= 500` even for one-word answers. `LLMResponse.starved` detects this. Also: `reasoning_effort` changes the *answer*, not just its length, so hold it fixed when comparing anything else.
 
-**Windows consoles crash on model output.** Typographic quotes and non-breaking hyphens don't exist in cp1252 → `UnicodeEncodeError` at print time, far from the model call. Fixed once in `src/llmkit/terminal.py`; it needs *both* UTF-8 stream reconfiguration *and* console code page 65001, or you swap a crash for mojibake. **Always import `console` from `llmkit`** rather than constructing a Rich `Console`.
+**Windows consoles crash on model output.** Typographic quotes and non-breaking hyphens don't exist in cp1252 â†’ `UnicodeEncodeError` at print time, far from the model call. Fixed once in `src/llmkit/terminal.py`; it needs *both* UTF-8 stream reconfiguration *and* console code page 65001, or you swap a crash for mojibake. **Always import `console` from `llmkit`** rather than constructing a Rich `Console`.
 
 **Pydantic docstrings leak into prompts.** Class and enum docstrings are serialised into `model_json_schema()` as `description` and sent to the model. Keep human commentary in `#` comments. Verify with `extract.py --show-schema`.
 
@@ -176,6 +177,13 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 **A prompt change can reintroduce a bug from five lessons earlier.** Lesson 9's `verify_first` prompt ("attempt the most relevant tool before refusing") re-triggered lesson 2's phantom tool call: the model requests a tool that was never offered when the real ones do not fit, and `run_agent` aborts with an empty answer. Nothing about the loop changed; only the prompt did.
 
+**A sub-agent's work is invisible to `Trajectory`, and that breaks cost AND correctness.** A sub-agent runs inside `registry.dispatch()`, which lesson 3's `Trajectory` does not look at — it was written before sub-agents existed. Two consequences, both silent:
+
+- *Cost*: 76% of a delegating run's tokens go unrecorded, so lesson 7's per-case counts and lesson 8's `CostReport` under-report by most of the bill. Lesson 10's `DelegationLog` works around it from outside; anything reading `Trajectory.usage` directly is still wrong.
+- *Correctness*: the parent's `tool_sequence` reads `["ask_calculator"]`, not `["calculate"]`, so `used_tools(["calculate"])` fails on a correct answer. **10 of the 16 eval cases assert `used_tools` and an 11th asserts `answered_without_tools`**, so most process checks silently measure the wrong thing once work is delegated. A full suite run would have reported a large regression manufactured by the harness rather than by the architecture.
+
+The fix (`DelegationLog.effective_tool_sequence` plus lesson 7's new `correct_execution` hook) needed no new data collection — the tool names were in the log already. Same shape as lesson 8's tracing insight: **a view problem, not a collection problem.** If you ever make `Trajectory` aware of nested usage, both problems go away at the source and lessons 7 and 8 get fixed for free.
+
 **Hardcoded commentary in a measurement tool is a bug.** Lesson 8's `--cost-compare` panel was fixed prose describing the baseline-vs-strict result, so it printed "cost per success went the wrong way" for every comparison — including one that showed an 11% improvement, and including baseline-vs-strict itself, where cost per success had actually improved 3.8% (not worsened). Found in lesson 9 by pointing the tool at a run that did not exist when the prose was written. Now computed by `cost_verdict()` in `tracing.py` with four tests, and the claim is corrected in lesson 8's README/NOTES and `docs/00-index.md`. **The narrative in a measurement tool needs tests as much as its arithmetic does** — this is the fourth silent measurement bug in the project.
 
 **Instruction placement beats instruction wording, at least on this model.** The same sentence — "call this tool to check rather than assuming" — changed behaviour in the system prompt and did nothing in a tool description (0/3). Before spending an afternoon rewording tool descriptions, test whether this model reads them as instructions at all.
@@ -189,8 +197,8 @@ On `openai/gpt-oss-120b` via Groq:
 - Reasoning share: 74–93% of output tokens
 - Lesson 1 reliability, 5 identical runs at temperature 0: **3/5 succeeded first attempt**, all 5 final outputs identical. The repair loop silently absorbed a 40% failure rate.
 - Lesson 1, `json_mode` vs prompt-only: 1 attempt / 1,716 tokens vs 2 attempts / 3,044 tokens.
-- Lesson 3 context growth: prompt tokens 824 → 1,127 → 3,466 → 6,122 over four steps (11,539 input tokens for 4 calls). Cost grows ~quadratically with step count.
-- Lesson 4 compaction, budget 900: input tokens 9,726 → 6,747 (−31%); per step 1,621 → 1,124. Compressing tool results alone took a conversation from 2,711 → 1,429 tokens with no model call.
+- Lesson 3 context growth: prompt tokens 824 â†’ 1,127 â†’ 3,466 â†’ 6,122 over four steps (11,539 input tokens for 4 calls). Cost grows ~quadratically with step count.
+- Lesson 4 compaction, budget 900: input tokens 9,726 â†’ 6,747 (âˆ’31%); per step 1,621 â†’ 1,124. Compressing tool results alone took a conversation from 2,711 â†’ 1,429 tokens with no model call.
 - Lesson 4 token estimator: originally **91% too low** (7 estimated vs 79 charged) before accounting for a ~70-token chat-template preamble and JSON's higher density. Now +19% worst case, erring high.
 - Lesson 5 retrieval, 193 chunks / 10 paraphrased queries: keyword 0/10 top-1 but 7/10 recall@4; semantic 7/10 and 8/10; hybrid 7/10 and 9/10. Retrieval sends ~2.2% of the corpus versus stuffing it.
 
@@ -205,12 +213,49 @@ Lesson 9, on the same model and against the same baseline (~165,000 tokens acros
 - **Prediction accuracy: 1 in 4.** Graded strictly — calling the win but missing a regression is a miss. The one hit was confirming a diagnosis already established by measurement, so every genuine guess about prompt behaviour was wrong.
 - **Noise floor, 2 uncached repeats: 0 of 16 cases flipped.** Both runs 15/16, every per-case verdict identical. **Then contradicted the same session**: `files_quote_definition` under the `verify_first` prompt measured 8/10 (~20% failure, `stop_reason=phantom_tool`) against 4/4 clean on the control. Two repeats cannot establish a noise floor.
 - `verify_conversion` (narrow prompt): no metric change, 830 tokens cheaper, but the refusal moved from "I can't look up the Bitcoin price" to "the tool only supports USD, EUR, GBP, INR, JPY, AUD, CAD". A real improvement no scorer could see.
-- `verify_first` (broad prompt): fixed `currency_unsupported`, tool-choice accuracy 91% → **100%**, 1,943 tokens cheaper, and broke `files_quote_definition` via a phantom tool call. Unresolved on purpose.
+- `verify_first` (broad prompt): fixed `currency_unsupported`, tool-choice accuracy 91% â†’ **100%**, 1,943 tokens cheaper, and broke `files_quote_definition` via a phantom tool call. Unresolved on purpose.
 - `combined` (prompt + rescored case, forced, **zero tokens** because both halves were cached): **16/16**, the only 100% in the project, reproducible 4/4, cost per success 0.89x. Still recorded `inconclusive` — +1 case is below the provisional threshold.
 - `hide_currency_list` and `loud_currency_list`: **0/3 each** on single-case probes costing ~5,000 tokens instead of 33,000. Removing the tool's supported-currency list entirely did not make the agent call the tool, so the obvious diagnosis was simply wrong. The same instruction worked in the system prompt and did nothing in a tool description.
 - **Final: 4 attempts, 2 revert, 2 inconclusive, 0 kept.**
 
-## Where lesson 10 picks up
+Lesson 10, multi-agent (both models, against the same dataset and tools — the only difference is the wiring):
+
+- **Given its own tools, the coordinator does not delegate.** Full team available on a two-part question: zero delegations, zero sub-agent tokens. It used `search_files` and `calculate` itself, which was correct. A capable agent routes around your team.
+- **The tax for a team you never call is ~30%.** `no_tool_definition` 882 → 1,151 (+30%) and `files_quote_definition` 5,735 → 7,620 (+33%), both with *zero* delegations — the cost is three extra tool schemas and a longer coordinator prompt re-sent every step.
+- Forcing delegation with `--router`: 6,034 → **9,438 tokens (+56%)** on the same question.
+- **76% of a delegating run's tokens are invisible to `Trajectory`** (parent saw 2,265 of 9,438). Read off `Trajectory.usage`, the expensive architecture looks **62% cheaper** than solo when it is 56% dearer.
+- `arith_precision` solo → team: 1,807 → 3,395 (+88%), and **reproducibly "failed"** (20b once, 120b 0/2) — but the answer was correct. See the findings below.
+- Pipeline `relay` → `shared`: 7,491 → **14,896 tokens (+99%)**, +113% prompt tokens, +160% wall time, and the same critic verdict.
+- Pipeline on a keyword-friendly topic: 7,671 tokens across three stages, critic approved. On a paraphrased topic: the researcher **stalled** in stage one and the pipeline correctly produced nothing.
+- **Hit the 200,000/day ceiling** (`Used 199252`) on 20b mid-probe, in a lesson that ran fewer live commands than lesson 9.
+- **`--evaluate` is implemented and deliberately unrun.** Five probes at ~25,000 tokens answered the question more sharply than the 82,000-token suite would, which is lesson 9's own finding applied.
+
+## Where lesson 11 picks up
+
+Lesson 11 is guardrails and failure modes, and it is the first lesson where the adversary is a person rather than a model's limitations. Most of the machinery exists; what is missing is a threat model and the checks that follow from it.
+
+What is already available, and mostly already load-bearing:
+
+- **`ToolRegistry.dispatch()`** — the security boundary since lesson 2, with its check order documented as the security model. It blocks hallucinated tool names by construction, because the registry *is* the allowlist.
+- **Lesson 3's path sandbox** — `read_file` refuses to escape the project root, and lesson 7's `files_refuse_escape` case proves it while also checking the agent does not fabricate file contents when refused. That case is in the protected category for exactly this reason.
+- **Lesson 2's AST calculator** — no `eval`, adversarial inputs already enumerated, property-tested in lesson 6.
+- **Lesson 10's `ToolRegistry.subset`** — per-agent privilege, currently used for tidiness. Lesson 11 is where it becomes a boundary that matters: a sub-agent processing untrusted text should not hold the tools that can act on it.
+- **Lesson 9's decision rule** — the `impossible` category is already protected, so a guardrail change that regresses a fabrication or sandbox case reverts regardless of the net score. The rule is there; lesson 11 supplies more cases for it to protect.
+
+Lesson 11 should build:
+
+1. **A threat model first, written down.** Who is the adversary, what can they control, and what would count as a breach. Skipping this produces a pile of string filters that block yesterday's attack.
+2. **Prompt injection, demonstrated on this project's own agent.** The natural vector already exists: `read_file` and `search_files` put *file contents* into the conversation, and lesson 3's loop treats a tool result as trustworthy observation. Plant a file in the sandbox containing instructions and see whether the agent follows them. **This should be built as an eval case, not a demo**, so it is checked forever rather than once.
+3. **The trust boundary, stated as a rule.** Tool results are untrusted data. The loop currently makes no distinction between what the user said and what a file said, which is the root cause of every injection.
+4. **Output guardrails.** Lesson 7's `does_not_contain` and `does_not_match` are already fabrication guards — generalise them into a check that runs *in the loop* rather than only in the eval, and be honest about the cost: a guardrail is a per-step tax.
+5. **Approval gates.** A tool that needs human confirmation before it acts. `dispatch()` is the single place to put it, which is the payoff for having one dispatcher.
+6. **Failure modes with no clean fix**, named as such. The phantom tool call (lessons 2 and 9), the sub-agent whose refusal reads as an answer (lesson 10), and the fact that a model cannot reliably distinguish instructions from data no matter how the prompt is worded.
+
+A caution: guardrails invite security theatre. The lesson should end with a reader who can say which of their checks would actually stop an attacker and which merely raise the effort — and the honest answer for prompt injection is that nothing here solves it, it only narrows the blast radius. That is worth stating plainly rather than shipping a filter and implying otherwise.
+
+Budget note: injection cases are cheap (short prompts, few steps), so this lesson should be affordable even after lesson 10 exhausted a day's quota. Add the cases to lesson 7's dataset and the whole suite grows, which lesson 9 has been asking for since it was written.
+
+## Where lesson 10 picked up (done)
 
 Lesson 10 is multi-agent patterns, and for the first time in a while there is a real question to answer rather than a capability to add: **is a second agent ever worth it?** Lesson 9's machinery can answer that, and it should be pointed at the question from the start rather than bolted on afterwards.
 
@@ -249,7 +294,7 @@ What is already available:
 
 Lesson 09 should build:
 
-1. **A disciplined loop, written down.** Hypothesis → change exactly one variable → measure → read the failures → keep or revert. The discipline is the content; the code is thin.
+1. **A disciplined loop, written down.** Hypothesis â†’ change exactly one variable â†’ measure â†’ read the failures â†’ keep or revert. The discipline is the content; the code is thin.
 2. **A real improvement, earned.** `currency_unsupported` is the obvious target: it fails because the agent declines without calling the tool. Try a prompt change, measure, and see whether it fixes that case *without breaking others* — which is exactly what `--compare` exists to catch.
 3. **A demonstration that intuition loses.** Lesson 7 already has one: the "better" strict prompt was worse. Add one or two more variables (tool description wording, `max_steps`, `reasoning_effort`) and show the hit rate of guessing.
 4. **Variance versus signal.** Run the same configuration twice and compare. If two identical runs differ by a case, then a one-case "improvement" is noise — and that number is the floor on what the suite can detect.
@@ -344,7 +389,7 @@ Lesson 3 ends with a measured problem statement rather than a cliffhanger. Run:
 uv run lessons/03-agent-loop/agent.py --growth
 ```
 
-Prompt tokens across four steps of the research task: **824 → 1,127 → 3,466 → 6,122**, totalling 11,539 input tokens for four calls. The whole conversation is re-sent every call, so cost grows roughly with the square of the step count. A 10-step agent is nearer 50x a 1-step agent on input tokens.
+Prompt tokens across four steps of the research task: **824 â†’ 1,127 â†’ 3,466 â†’ 6,122**, totalling 11,539 input tokens for four calls. The whole conversation is re-sent every call, so cost grows roughly with the square of the step count. A 10-step agent is nearer 50x a 1-step agent on input tokens.
 
 Lesson 04 should build:
 
@@ -391,6 +436,10 @@ Reuse `lessons/02-tool-calling/tools.py` (or a superset) so the difference betwe
 - **Only one case has a measured flake rate.** The other fifteen are assumed stable on the strength of two repeats, which lesson 9 demonstrated is not enough.
 - **The noise floor on disk (`lessons/09-iteration/noise.json`) is provisional**, at 2 repeats. `--noise --repeats 3` costs two full runs and would replace it with something usable.
 - **`terse_prompt` and `more_steps` are defined, predicted and unrun** — the day's token budget went on rechecks instead. Both are one command away.
+- **Lesson 10's `--evaluate` is implemented and unrun.** ~82,000 tokens. The probes already answered the architecture question, but running it would confirm whether the naive-vs-effective scoring gap appears across the suite as it did on `arith_precision`.
+- **`Trajectory` still under-reports nested cost.** `DelegationLog` patches it from outside, for lesson 10 only. Teaching `Trajectory` about nested usage would fix lessons 7 and 8 at the source, and is the highest-value refactor left in the project.
+- **Process assertions assume a fixed topology.** The effective-sequence fix handles delegation. A differently-shaped architecture would break `used_tools` again, and the general problem is unsolved.
+- **Lesson 10's researcher has no semantic retrieval**, so it stalls on paraphrased questions — the exact failure lesson 5 was built to fix. The two were never wired together; doing so is a small change with a measurable outcome.
 - Model size vs tool-call reliability (lesson 1's `--reliability 5` on a smaller model) still has an unfilled placeholder in `lessons/01-structured-output/NOTES.md`. Optional.
 
 ## Repo map
@@ -497,7 +546,26 @@ lessons/09-iteration/
   conftest.py + test_iteration.py   53 tests, mostly pinning the decision rules
   attempts.json                committed: 4 attempts, 2 revert 2 inconclusive, 0 kept
   noise.json                   committed: the (provisional, 2-repeat) noise floor
+
+lessons/10-multi-agent/
+  README.md                    delegation vs handoff, the measured verdict, 6 exercises
+  team.py                      THE lesson: SubAgent, as_tool(), DelegationBudget,
+                               DelegationLog (incl. effective_tool_sequence)
+  pipeline.py                  handoff: Stage/PipelineRun, relay vs shared, the
+                               research/write/critique sequence
+  multi.py                     CLI: --team/--ask/--router/--pipeline/--compare/
+                               --recursion/--probe/--evaluate
+  conftest.py + test_team.py   42 tests, aimed at the silent failure modes
 ```
+
+Lesson 10 changed two files outside its own folder:
+
+- `lessons/07-evaluation/harness.py` — `run_case`/`run_eval` gained an optional
+  `correct_execution(trajectory, execution) -> Execution` hook, so a caller that knows
+  something the harness cannot see may repair the record *before* it is scored or
+  cached. It corrects what the agent did, never the verdict, which keeps lesson 7's
+  cache-the-execution-not-the-score rule intact.
+- `src/llmkit/tools.py` — nothing new; `ToolRegistry.subset` finally has a caller.
 
 Lesson 9 changed three files outside its own folder, all small and all justified in
 comments at the point of change:
@@ -540,3 +608,4 @@ Seven lessons in, the same handful of ideas keep reappearing. They are worth mor
 - **Two measurements that disagree are a gift.** That is the only reason the duplicated label bug was caught.
 - **Errors should be data, not exceptions.** Tool failures as observations is what makes self-correction work at all.
 - **Write down why, not just what.** The `why` on eval cases and the docstrings on regression tests are what make this repo resumable.
+

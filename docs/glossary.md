@@ -186,6 +186,28 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **Optimising the metric** — changing the system to make the score rise without making the product better. Lesson 9's example: hiding a tool's supported-currency list so the agent is forced to call it. The measured refutation of the underlying diagnosis is what stopped it being shipped.
 
+## Multi-agent
+
+**Sub-agent** — an agent invoked as a tool by another agent. Not a special construct: the parent sees a name, a description and a parameter, exactly as with any tool, and cannot tell the difference.
+
+**Coordinator** — the agent holding the delegation tools. Keeps its own tools too, unless you deliberately strip them; a coordinator with no tools of its own pays a full agent run for a two-digit multiplication.
+
+**Delegation** — asking a sub-agent and getting control back. The model chooses whether to delegate, so the route adapts to what is found.
+
+**Handoff** — passing control to the next agent, which does not report back. The sequence is fixed in code, making it cheaper and more predictable and unable to recover when a stage fails.
+
+**Router** — a coordinator with no tools of its own, so every piece of work costs a delegation. Sounds clean, measures badly.
+
+**Least privilege (for agents)** — giving each specialist only the tools its job needs. A critic with tools becomes a second researcher; a writer that can read files will read files.
+
+**Delegation budget** — caps on nested agent calls. **Depth** stops recursion and is best enforced by withholding the delegation tools rather than refusing the call. **Breadth** caps total calls, because six specialists once each costs the same as one specialist six times.
+
+**Hidden cost** — tokens spent inside a tool call, where the parent's trajectory cannot see them. A delegating agent's real cost is its own usage plus its sub-agents', and any tool reading only the first under-reports — in this project by 76%, enough to make the expensive architecture look cheaper.
+
+**Effective tool sequence** — a parent's tool sequence with delegations expanded into the tools the sub-agents actually used. Needed because process assertions like `used_tools` otherwise measure the delegation rather than the work, and report a regression that is an artifact of the instrument.
+
+**Relay vs shared state** — passing only the previous stage's output, versus continuing the whole message list. Relay is cheap and lossy: facts a later stage needs must be plumbed to it explicitly. Shared lets a stage verify rather than trust, and costs about twice as much.
+
 ## Operations
 
 **Trace / span** — a structured record of a run and its individual steps. How you debug something non-deterministic.
