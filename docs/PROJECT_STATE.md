@@ -57,16 +57,22 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 03 — The agent loop | **Complete, verified against a live model** |
 | 04 — Memory and context | **Complete, verified against a live model** |
 | 05 — Retrieval | **Complete, verified against a live model** |
-| 06 — Testing | **Complete. 111 offline tests + 8 live, all passing** |
-| 07 — Evaluation | **Next up. Not started.** |
+| 06 — Testing | **Complete. 111 offline tests, all passing** |
+| 07 — Evaluation | **Complete. 15/16 baseline, measured regression demonstrated** |
 | 08–13 | Planned only. See the curriculum table in the root README. |
 
-**There is a test suite now. Run it before and after any change:**
+**There is a test suite and an eval harness now. Run both before and after any change:**
 
 ```powershell
-uv run pytest lessons/06-testing          # 111 tests, offline, ~1 second
-uv run pytest lessons/06-testing -m live  # 8 more, costs tokens
+uv sync --all-extras                      # NOTE: --all-extras, or pytest disappears
+uv run pytest lessons                     # 153 tests, offline, ~2 seconds
+uv run pytest lessons -m live             # 8 more, costs tokens
+
+uv run lessons/07-evaluation/evaluate.py --show baseline        # free, from a saved run
+uv run lessons/07-evaluation/evaluate.py --compare baseline strict
 ```
+
+Gotcha worth knowing: `uv sync --extra retrieval` **removes** pytest, because uv syncs to exactly the extras you name. Always use `--all-extras`.
 
 Lesson 3's `run_agent` gained two optional parameters while building lesson 4:
 `compactor` (a hook called before each model call) and `initial_messages` (start
@@ -160,7 +166,27 @@ On `openai/gpt-oss-120b` via Groq:
 - Lesson 1 reliability, 5 identical runs at temperature 0: **3/5 succeeded first attempt**, all 5 final outputs identical. The repair loop silently absorbed a 40% failure rate.
 - Lesson 1, `json_mode` vs prompt-only: 1 attempt / 1,716 tokens vs 2 attempts / 3,044 tokens.
 
-## Where lesson 07 picks up
+## Where lesson 08 picks up
+
+Lesson 7's scorers are all deterministic, and that was deliberate: exhaust the free, unambiguous checks before letting a model grade a model. What they cannot reach is anything subjective — "is this explanation clear?", "did it cite the right source?", "is this refusal appropriately worded rather than merely containing the word 'cannot'?"
+
+Lesson 7 left two explicit hooks for this:
+
+- `declined()` scores refusals by keyword and says so in its own docstring: an agent could refuse in words it misses, or say "cannot" while still fabricating. That is a judge's job.
+- `mentions()` is a fragile proxy for "conveys this fact".
+
+Lesson 08 should build:
+
+1. **LLM-as-judge with a rubric** — a scorer that calls a model with explicit criteria and returns pass/fail plus a reason. Reuse lesson 1's structured-output pattern so the verdict is parsed and validated, not regex-scraped.
+2. **Judge calibration against the deterministic set.** Run the judge on the 16 cases where the answer is already known and measure agreement. A judge that disagrees with `numeric_answer` is wrong, and you need to know that before trusting it on subjective cases.
+3. **Known judge biases, demonstrated** — verbosity preference (longer answers score higher), self-preference (a model favours its own output), position bias in pairwise comparison. Each is measurable with the existing harness.
+4. **Tracing** — structured spans for every model call and tool call, written to disk. `Trajectory` already holds the data; this is about making a run inspectable after the fact.
+5. **Cost and latency accounting** — per-case token counts already exist in `CaseResult`. Add price tables and report cost per case, per run, and per successful answer.
+6. **A trace viewer** — even a simple terminal tree. The goal is answering "why did this run fail?" without re-running it.
+
+Reuse: `harness.py`'s caching (a judge call should be cached too, and is subject to the same cache-the-execution-not-the-score rule), and lesson 6's `CassetteClient` so judge behaviour can be tested offline.
+
+## Where lesson 07 picked up (done)
 
 Lesson 6 tests whether the machinery *works*. Lesson 7 asks whether the agent is any *good* — a different question, and the gap is already documented:
 
@@ -343,6 +369,17 @@ lessons/06-testing/
   test_live.py                 8 opt-in tests (provider contract, estimator drift)
   record.py                    records cassettes; the only token-spending script here
   cassettes/*.json             committed fixtures (4 scenarios)
+
+lessons/07-evaluation/
+  README.md                    eval design, scorers, the measured regression, 6 exercises
+  dataset.py                   16 cases with expected outcomes and rationale
+  scorers.py                   THE lesson: deterministic scorers + normalisation
+  harness.py                   running, caching (Execution vs score), comparison
+  evaluate.py                  CLI: --run/--show/--compare/--case/--list
+  conftest.py + test_scorers.py  42 tests for the scorers and dataset integrity
+  runs/baseline.json           committed: 15/16 on gpt-oss-20b
+  runs/strict.json             committed: 14/16, the measured regression
+  .cache/                      cached executions (gitignored, model-specific)
 ```
 
 Note lesson 5 imports lesson 4's `ContextManager` and lesson 3's `run_agent` and

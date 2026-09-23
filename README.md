@@ -70,7 +70,7 @@ Note that hosted providers retire models regularly — `check_env.py` prints the
 
 | # | Lesson | Concepts | Deliverable |
 |---|---|---|---|
-| 07 | Evaluation | eval datasets, task success, tool-choice accuracy, regression detection | eval harness + scorecard |
+| 07 | [Evaluation](lessons/07-evaluation) | eval datasets, deterministic scorers, fabrication guards, cached runs, regression detection | eval harness + scorecard |
 | 08 | Judging and tracing | LLM-as-judge and its biases, spans, token/cost/latency accounting | trace viewer + cost report |
 | 09 | Iteration | A/B testing prompts, models and tool designs against your evals | a measured improvement |
 
@@ -104,14 +104,20 @@ uv run lessons/01-structured-output/extract.py
 
 ## Status
 
-Lessons 00 through 06 are complete and verified against a live model. Lesson 07 is next.
+Lessons 00 through 07 are complete and verified against a live model. Lesson 08 is next.
 
-From lesson 6 onward there's a test suite:
+There's a test suite from lesson 6, and an eval harness from lesson 7:
 
 ```powershell
-uv run pytest lessons/06-testing          # 111 tests, offline, ~1 second
-uv run pytest lessons/06-testing -m live  # 8 more, hits the API
+uv sync --all-extras
+uv run pytest lessons                    # 153 tests, offline, ~2 seconds
+uv run pytest lessons -m live            # 8 more, hits the API
+
+uv run lessons/07-evaluation/evaluate.py --show baseline      # 15/16, from a saved run
+uv run lessons/07-evaluation/evaluate.py --compare baseline strict
 ```
+
+The two committed eval runs let you see a measured regression without spending any tokens.
 
 By the end of lesson 3 you have a working agent: it plans across multiple steps, recovers from its own mistakes, refuses to escape its sandbox, and reports honestly when it gives up. Lesson 4 keeps it inside a token budget and lets a session survive a restart.
 

@@ -130,7 +130,17 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **Live test** — a test that calls a real API. Slow, costs tokens, fails on rate limits, so it must be opt-in. Closer to monitoring than to unit testing.
 
-**Eval dataset** — inputs paired with expected outcomes, used to score an agent.
+**Eval dataset** — inputs paired with expected outcomes, used to score an agent. Distinct from a test suite: tests check the machinery works, evals check the agent is good.
+
+**Scorer** — a function turning an agent's output into pass/fail. *Deterministic* scorers are plain code (numeric match, required phrase, forbidden pattern); a *judge* uses a model. Exhaust the former first.
+
+**Fabrication guard** — a scorer asserting something is *absent*, catching an invented answer. Without one, a case cannot distinguish a correct refusal from a plausible lie.
+
+**Saturated eval** — one where everything passes, so it can no longer rank configurations or detect regressions. Means the eval is too easy, not the agent too good.
+
+**Confidence interval** — the honest range around a success rate. 15/16 reads as 94% but spans roughly 72–99%; on small sets, one case is several percent.
+
+**Execution cache** — storing what the agent *did* so scoring can be recomputed for free. Caching the *score* instead means a new scorer never runs.
 
 **Task success rate** — the fraction of eval cases the agent actually completed. The metric that matters most.
 

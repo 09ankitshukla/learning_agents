@@ -200,9 +200,35 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **The regression suite is the honest documentation.** One test per bug actually shipped. Each cost real debugging time; each test costs milliseconds and runs forever.
 
-## Lesson 07 — Evaluation
+## Lesson 07 — Evaluation · [notes](../lessons/07-evaluation/NOTES.md)
 
-*Not yet written.*
+**The one idea: lesson 6 asks "does the machinery work?", lesson 7 asks "is the agent any good?".** `COMPLETED` only means the model stopped asking for tools. Telling a correct answer from a graceful refusal or a confident fabrication needs cases with **expected outcomes**.
+
+**An eval case needs a `why`.** A dataset without rationale rots — six months on nobody knows if a case is load-bearing, and nobody dares delete it either.
+
+**Include cases the agent should refuse.** A set of only solvable tasks rewards confident guessing. `does_not_contain` / `does_not_match` are the fabrication guards most eval sets lack, and a case that only checks for the right answer cannot distinguish "declined correctly" from "invented something plausible".
+
+**Deterministic scorers before judges.** Free, instant, reproducible, unbiased. Exhaust them before letting a model grade a model (lesson 8).
+
+**Normalise aggressively or you measure formatting.** A scorer checking `"6319"` fails on LaTeX `6{,}319`. Strip separators, braces, typographic punctuation; extract *all* numbers and ask if the right one is present. **A scorer that is too strict measures formatting instead of correctness, and you will not notice, because the failures look real.**
+
+**Substring matching is too blunt for fabrication checks.** `"$1"` is a substring of `"$185"`, so forbidding it also fails a good refusal saying "it is not $1 or any other figure". Forbid a *shape* with a regex instead.
+
+**Cache the execution, never the score.** Got this wrong first: caching the scored result meant a newly added scorer never ran, and the suite reported a pass for a case that should have failed — confidently wrong and silent. Cache the expensive stable thing (the agent run), recompute the cheap volatile thing (the score) every time. After the fix, changing a scorer re-scored all 16 cases for **zero tokens**.
+
+**Never cache errors.** A rate limit is not a finding about the agent; caching one poisons every later run.
+
+**Caching is a correctness feature, not an optimisation.** Without it, re-running a baseline gives *different* baseline numbers, so you attribute model variance to your change.
+
+**Measured: the "better" prompt was worse.** Baseline 15/16 (94%); a stricter prompt saying "always use a tool, never guess" scored 14/16 (88%) and broke a passing case. Verdict `REGRESSION`. Without the harness I would have shipped it, because it reads better.
+
+**Right answer, wrong process.** `currency_unsupported` fails because the agent declined *without calling the tool* — correct outcome, unjustified reasoning, and the same reasoning would wrongly refuse a supported currency. **High success with low tool-choice accuracy means the agent is right by accident.**
+
+**A saturated eval has no resolving power.** The first dataset scored 13/13 and could not rank two configurations at all. **If everything passes, the eval is too easy, not the agent too good.**
+
+**Report the confidence interval.** 15/16 = 94% has a Wilson interval of 72–99%. With 16 cases one case is 6%: this suite distinguishes working from broken, not 85% from 92%. Treat a net change of one case as noise.
+
+**Report what broke, not just the average.** An aggregate can rise while security or fabrication cases regress, and one such loss is not offset by two wins elsewhere. Warn when two runs differ in more than one variable.
 
 ## Lesson 08 — Judging and tracing
 
