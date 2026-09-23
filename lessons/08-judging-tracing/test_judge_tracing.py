@@ -309,3 +309,84 @@ class TestTracing:
         assert raw["stop_reason"] == "completed"
         assert len(raw["spans"]) == 3
         assert raw["spans"][0]["children"][0]["kind"] == "model_call"
+
+
+# ---------------------------------------------------------------------------
+# Commentary derived from the numbers, not asserted over them
+# ---------------------------------------------------------------------------
+def _cost_report(successes: int, runs: int, prompt: int, completion: int):
+    from tracing import CostReport
+
+    return CostReport(
+        model="openai/gpt-oss-20b",
+        price_known=True,
+        runs=runs,
+        successes=successes,
+        prompt_tokens=prompt,
+        completion_tokens=completion,
+        reasoning_tokens=0,
+    )
+
+
+def test_cost_verdict_quantifies_how_much_of_a_saving_a_regression_eats():
+    """Lesson 7's real strict-prompt figures: cost per case -10.2%, cost per success
+    only -3.8%. Note what this refutes -- the original hardcoded prose claimed cost per
+    success 'went the wrong way', and it had not. It improved, just far less than the
+    per-case figure suggested. The honest lesson is that the accuracy regression ate
+    about two-thirds of the apparent saving, not that value got worse."""
+    from tracing import cost_verdict
+
+    before = _cost_report(15, 16, 30_313, 2_996)   # baseline: $0.000295/success
+    after = _cost_report(14, 16, 27_574, 2_728)    # strict:   $0.000284/success
+    verdict = cost_verdict(before, after)
+
+    assert "cost per successful answer improved" in verdict
+    assert "mostly illusory" in verdict
+    assert "was, on accuracy, a regression" in verdict
+
+
+def test_cost_verdict_still_names_the_outright_trap():
+    """A large enough accuracy loss does flip cost per success the wrong way, and that
+    case must read differently from the one above."""
+    from tracing import cost_verdict
+
+    before = _cost_report(15, 16, 30_000, 3_000)
+    after = _cost_report(10, 16, 27_000, 2_700)
+    verdict = cost_verdict(before, after)
+
+    assert "cost per successful answer got worse" in verdict
+    assert "outright trap" in verdict
+
+
+def test_cost_verdict_does_not_claim_a_regression_when_things_improved():
+    """The bug this replaced. The panel was hardcoded prose about baseline-vs-strict, so
+    it announced that cost per success 'went the wrong way' while the table above it
+    showed an 11% improvement. Commentary that ignores its own data is a confident
+    caption on the wrong photograph."""
+    from tracing import cost_verdict
+
+    before = _cost_report(15, 16, 30_000, 3_000)
+    after = _cost_report(16, 16, 27_000, 2_700)
+    verdict = cost_verdict(before, after)
+
+    assert "cost per successful answer improved" in verdict
+    assert "got worse" not in verdict
+    assert "Cheaper and more accurate" in verdict
+
+
+def test_cost_verdict_handles_the_normal_shape_of_an_improvement():
+    from tracing import cost_verdict
+
+    before = _cost_report(14, 16, 20_000, 2_000)
+    after = _cost_report(16, 16, 40_000, 4_000)
+    verdict = cost_verdict(before, after)
+
+    assert "More accurate and more expensive" in verdict
+
+
+def test_cost_verdict_always_reports_the_input_share():
+    from tracing import cost_verdict
+
+    before = _cost_report(15, 16, 90_000, 10_000)
+    after = _cost_report(15, 16, 90_000, 10_000)
+    assert "90% of baseline tokens are input" in cost_verdict(before, after)

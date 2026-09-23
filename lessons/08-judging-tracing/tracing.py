@@ -327,6 +327,96 @@ class CostReport:
         return self.cost_per_run * failures
 
 
+def _relative(before: float, after: float) -> float:
+    """Signed fractional change, 0.0 when there is no baseline to divide by."""
+    if not before or before == float("inf") or after == float("inf"):
+        return 0.0
+    return (after - before) / before
+
+
+def cost_verdict(before: CostReport, after: CostReport) -> str:
+    """Describe what a cost comparison actually shows.
+
+    Lives here rather than in the CLI because it was originally hardcoded prose in
+    `observe.py` explaining the baseline-vs-strict result, and it kept saying "cost per
+    success went the wrong way" for every other pair of runs -- including one where it
+    had improved 11%. Commentary that asserts a conclusion independent of the data is
+    worse than no commentary: it is a confident caption on the wrong photograph.
+
+    Found in lesson 9, by pointing `--cost-compare` at a run that did not exist when
+    this was written. A good reason to keep narrative text derived from the numbers.
+    """
+    per_case_delta = _relative(before.cost_per_run, after.cost_per_run)
+    per_success_delta = _relative(before.cost_per_success, after.cost_per_success)
+    cheaper_per_case = after.cost_per_run < before.cost_per_run
+    more_successes = after.successes > before.successes
+    fewer_successes = after.successes < before.successes
+
+    if after.cost_per_success == before.cost_per_success:
+        direction = "cost per successful answer did not move"
+    elif after.cost_per_success < before.cost_per_success:
+        direction = "cost per successful answer improved"
+    else:
+        direction = "cost per successful answer got worse"
+
+    lines = [
+        "This is the comparison that reframes a decision.",
+        "",
+        f"Per case it is {'cheaper' if cheaper_per_case else 'more expensive'} "
+        f"({per_case_delta:+.1%}), "
+        f"{'more' if more_successes else 'fewer' if fewer_successes else 'the same number of'} "
+        f"cases succeeded, and {direction} ({per_success_delta:+.1%}).",
+        "",
+    ]
+
+    if fewer_successes and cheaper_per_case and after.cost_per_success > before.cost_per_success:
+        lines.append(
+            "That is the outright trap: fewer tokens looks like an optimisation and is the "
+            "opposite. An agent that fails more often costs more per answer you can actually "
+            "use, and a headline 'tokens down' figure hides it completely."
+        )
+    elif fewer_successes and cheaper_per_case:
+        retained = per_success_delta / per_case_delta if per_case_delta else 0.0
+        lines.append(
+            f"This is the subtler and more common version, and it is what lesson 7's strict "
+            f"prompt actually did. The saving is real but mostly illusory: only {retained:.0%} "
+            f"of the per-case reduction survives once you divide by *usable* answers, because "
+            f"the extra failure ate the rest. Quoting the per-case figure would overstate the "
+            f"benefit by about {abs(per_case_delta / per_success_delta):.1f}x "
+            f"-- while the change was, on accuracy, a regression."
+        )
+    elif more_successes and cheaper_per_case:
+        lines.append(
+            "Cheaper and more accurate is the rare case with nothing to trade off. Check it is "
+            "real before believing it: a one-case gain on a 16-case suite is inside the noise "
+            "(lesson 9), and cost is measured far more precisely here than accuracy is."
+        )
+    elif more_successes:
+        lines.append(
+            "More accurate and more expensive is the normal shape of an improvement, and it is "
+            "the decision cost per success exists to inform: is the extra spend per usable "
+            "answer worth it? That is a product question, not a number."
+        )
+    else:
+        lines.append(
+            "Read cost per success rather than cost per case. An agent at half the price that "
+            "fails twice as often costs more per answer you can use, and the per-case figure "
+            "is the one everyone quotes."
+        )
+
+    lines += [
+        "",
+        "Note also how input-heavy this is. Every loop step re-sends the whole "
+        f"conversation (lesson 4) -- {before.input_share:.0%} of baseline tokens are input "
+        "-- so context management is a cost lever, not just a context-window one.",
+        "",
+        "The dollar figures are illustrative. The price table was plausible when written, "
+        "prices change, and the free tier bills nothing. Read these as relative "
+        "comparisons, never as an invoice.",
+    ]
+    return "\n".join(lines)
+
+
 def cost_from_eval_run(run) -> CostReport:
     """Build a cost report from a lesson 7 EvalRun.
 

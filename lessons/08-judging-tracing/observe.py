@@ -47,7 +47,13 @@ from judge import (  # noqa: E402
     compare_answers,
     judge_answer,
 )
-from tracing import CostReport, build_trace, cost_from_eval_run, price_for  # noqa: E402
+from tracing import (  # noqa: E402
+    CostReport,
+    build_trace,
+    cost_from_eval_run,
+    cost_verdict,
+    price_for,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -555,18 +561,7 @@ def experiment_cost_compare(baseline_name: str, candidate_name: str) -> None:
         row("cost per success", a.cost_per_success, b.cost_per_success)
     console.print(table)
 
-    console.print(
-        Panel(
-            "This is the comparison that reframes a decision.\n\n"
-            "Lesson 7 found the strict prompt was a regression on accuracy. Here it is "
-            "also *cheaper per case* -- fewer tokens -- and yet worse value, because "
-            "cost per success went the wrong way. A cheaper agent that fails more is "
-            "not a saving.\n\n"
-            "Reporting only 'tokens down 9%' would have made the regression look like "
-            "an optimisation.",
-            style="cyan",
-        )
-    )
+    console.print(Panel(cost_verdict(a, b), style="cyan"))
 
 
 def experiment_judge_case(client, case_id: str, use_cache: bool) -> None:

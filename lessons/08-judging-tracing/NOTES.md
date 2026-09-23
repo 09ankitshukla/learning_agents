@@ -112,7 +112,9 @@ Measured on lesson 7's runs:
 | successes | 15/16 | 14/16 | **−1** |
 | cost per success | $0.0003 | $0.0003 | −4% |
 
-The strict prompt is **10% cheaper per case and worse value**, because it fails more. Reporting only "tokens down 10%" would have made lesson 7's regression look like an optimisation.
+The strict prompt is **10.2% cheaper per case but only 3.8% cheaper per success** ($0.000295 → $0.000284), because it fails more. Quoting the per-case figure overstates the benefit by ~2.7x, for a change that was a regression on accuracy.
+
+**Corrected in lesson 9.** This originally said "worse value" / "cost per success went the wrong way". It did not — it improved, just far less than per-case. The claim was hardcoded prose in `observe.py` that ignored its own data and printed the same sentence for every comparison. Now computed by `cost_verdict()` in `tracing.py`, with tests. **Cost per success discounts a misleading saving rather than reversing it**, and that is still the reason to report it.
 
 **An agent at half the price that fails twice as often costs more per answer you can use.** Also worth tracking: 92% of tokens are input, which makes context management a cost lever, not just a context-window one.
 

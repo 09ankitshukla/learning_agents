@@ -127,7 +127,9 @@ uv run lessons/08-judging-tracing/observe.py --cost-compare baseline strict
 | successes | 15/16 | 14/16 | **−1** |
 | cost per success | $0.0003 | $0.0003 | −4% |
 
-The strict prompt is **10% cheaper per case and worse value**, because it fails more. Reporting only "tokens down 10%" would have made lesson 7's regression look like an optimisation.
+The strict prompt is **10.2% cheaper per case and only 3.8% cheaper per success**, because it fails more. Reporting "tokens down 10%" overstates the benefit by about 2.7x — for a change that was, on accuracy, a regression.
+
+> **Correction.** This section originally claimed the strict prompt was "worse value" and that cost per success "went the wrong way". Checked against the run files in lesson 9: cost per success *improved*, just far less than the per-case figure implied. The commentary was hardcoded prose that asserted a conclusion instead of reading its own numbers, so it also printed the same claim for comparisons where the opposite was true. It is now derived in `cost_verdict()` and tested. The real lesson is slightly different and more useful: **cost per success does not reverse a misleading saving so much as discount it** — here it revealed that two-thirds of the headline reduction was illusory.
 
 **An agent at half the price that fails twice as often costs more per answer you can use.** Also note 92% of tokens are input, which makes context management a cost lever, not just a context-window one.
 
