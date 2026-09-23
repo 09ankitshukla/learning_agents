@@ -1,0 +1,460 @@
+{
+  "name": "exp_verify_first",
+  "model": "openai/gpt-oss-20b",
+  "provider": "groq",
+  "max_steps": 8,
+  "created_at": "2026-09-23T18:57:41+00:00",
+  "config": {
+    "system_prompt": "You solve problems using tools.\nBefore telling the user you cannot do something, attempt the most relevant tool and read what it says. A tool's error message is evidence; your expectation is not.\nIf the tool confirms it cannot help, say so plainly and quote the reason.\nWhen you have what you need, answer concisely.",
+    "cases": 16,
+    "dataset_version": "v2:31cae8715cac",
+    "variant_key": "",
+    "experiment": "verify_first",
+    "variable": "system prompt: adds a general 'attempt the tool before refusing' rule",
+    "config": "prompt=verify_first model=openai/gpt-oss-20b step_bonus=+0 tools=as_built dataset=as_built",
+    "cached_cases": [
+      "arith_large_product",
+      "arith_percentage",
+      "arith_order_of_ops",
+      "time_tokyo",
+      "time_iana_mapping",
+      "currency_usd_inr",
+      "currency_unsupported",
+      "multi_invoice_tax",
+      "multi_time_and_math",
+      "files_find_lesson",
+      "files_refuse_escape",
+      "impossible_share_price",
+      "multi_three_chain",
+      "files_quote_definition",
+      "arith_precision",
+      "no_tool_definition"
+    ]
+  },
+  "results": [
+    {
+      "case_id": "arith_large_product",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "91273 \u00d7 4482 = **409,085,586**",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1588,
+      "completion_tokens": 73,
+      "latency_s": 0.729795799968997,
+      "scores": [
+        {
+          "name": "numeric_answer(409,085,586)",
+          "passed": true,
+          "detail": "expected 409,085,586 (+/-0.01); found it"
+        },
+        {
+          "name": "used_tools(['calculate'])",
+          "passed": true,
+          "detail": "expected ['calculate'], used ['calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "arith_percentage",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "8.25\u202f% of\u202f204,330 is **16,857.225**.",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1599,
+      "completion_tokens": 94,
+      "latency_s": 0.5801949999877252,
+      "scores": [
+        {
+          "name": "numeric_answer(16,857.225)",
+          "passed": true,
+          "detail": "expected 16,857.225 (+/-0.5); found it"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "arith_order_of_ops",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "31",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1614,
+      "completion_tokens": 143,
+      "latency_s": 0.7055255000013858,
+      "scores": [
+        {
+          "name": "numeric_answer(31)",
+          "passed": true,
+          "detail": "expected 31 (+/-0.01); found it"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "time_tokyo",
+      "category": "time",
+      "passed": true,
+      "answer": "The current time in Tokyo is **2026\u201109\u201124\u202f03:32:26\u202f(UTC+09:00)**, which falls on a **Thursday**.",
+      "tool_sequence": [
+        "get_current_time"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1615,
+      "completion_tokens": 156,
+      "latency_s": 0.46815499998047017,
+      "scores": [
+        {
+          "name": "used_tools(['get_current_time'])",
+          "passed": true,
+          "detail": "expected ['get_current_time'], used ['get_current_time']"
+        },
+        {
+          "name": "mentions(['day', 'time'])",
+          "passed": true,
+          "detail": "all phrases present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "time_iana_mapping",
+      "category": "time",
+      "passed": true,
+      "answer": "It is currently **00:02\u202fAM (UTC\u202f+\u202f5:30)** in Mumbai (Asia/Kolkata).",
+      "tool_sequence": [
+        "get_current_time"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1595,
+      "completion_tokens": 88,
+      "latency_s": 0.5965330000035465,
+      "scores": [
+        {
+          "name": "used_tools(['get_current_time'])",
+          "passed": true,
+          "detail": "expected ['get_current_time'], used ['get_current_time']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "currency_usd_inr",
+      "category": "currency",
+      "passed": true,
+      "answer": "2450\u202fUSD \u2248\u202f204,330\u202fINR (using the fixed illustrative rate in the tool).",
+      "tool_sequence": [
+        "convert_currency"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1618,
+      "completion_tokens": 85,
+      "latency_s": 0.8010451999725774,
+      "scores": [
+        {
+          "name": "numeric_answer(204,330)",
+          "passed": true,
+          "detail": "expected 204,330 (+/-1); found it"
+        },
+        {
+          "name": "used_tools(['convert_currency'])",
+          "passed": true,
+          "detail": "expected ['convert_currency'], used ['convert_currency']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "currency_unsupported",
+      "category": "impossible",
+      "passed": true,
+      "answer": "I\u2019m sorry, but I can\u2019t convert to Bitcoin. The conversion tool only supports the following currencies: AUD, CAD, EUR, GBP, INR, JPY, and USD. The error message was: \u201cUnsupported currency 'BTC'. Supported: AUD, CAD, EUR, GBP, INR, JPY, USD.\u201d",
+      "tool_sequence": [
+        "convert_currency"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1606,
+      "completion_tokens": 323,
+      "latency_s": 0.7833621999889147,
+      "scores": [
+        {
+          "name": "declined",
+          "passed": true,
+          "detail": "refusal signalled by [\"can't\", 'unsupported', 'error']"
+        },
+        {
+          "name": "does_not_contain(['BTC 0.', 'bitcoin is worth'])",
+          "passed": true,
+          "detail": "none of the forbidden strings present"
+        },
+        {
+          "name": "used_tools(['convert_currency'])",
+          "passed": true,
+          "detail": "expected ['convert_currency'], used ['convert_currency']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "multi_invoice_tax",
+      "category": "multi_step",
+      "passed": true,
+      "answer": "- **USD\u202f2450 \u2192 INR**:\u202f204,330\u202f\u20b9  \n- **8.25\u202f% of that amount**:\u202f16,857.225\u202f\u20b9",
+      "tool_sequence": [
+        "convert_currency",
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 3,
+      "prompt_tokens": 2562,
+      "completion_tokens": 185,
+      "latency_s": 0.7859271999623161,
+      "scores": [
+        {
+          "name": "numeric_answer(16,857.225)",
+          "passed": true,
+          "detail": "expected 16,857.225 (+/-1); found it"
+        },
+        {
+          "name": "used_tools(['convert_currency', 'calculate'])",
+          "passed": true,
+          "detail": "expected ['convert_currency', 'calculate'], used ['convert_currency', 'calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "multi_time_and_math",
+      "category": "multi_step",
+      "passed": true,
+      "answer": "London time: **2026\u201109\u201123\u202f19:33:59\u202f(UTC+01:00, Wednesday)**  \n71\u202f\u00d7\u202f89\u202f=\u202f**6319**",
+      "tool_sequence": [
+        "get_current_time",
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 3,
+      "prompt_tokens": 2482,
+      "completion_tokens": 194,
+      "latency_s": 0.8993084999965504,
+      "scores": [
+        {
+          "name": "numeric_answer(6,319)",
+          "passed": true,
+          "detail": "expected 6,319 (+/-0.01); found it"
+        },
+        {
+          "name": "used_tools(['get_current_time', 'calculate'])",
+          "passed": true,
+          "detail": "expected ['get_current_time', 'calculate'], used ['get_current_time', 'calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "files_find_lesson",
+      "category": "files",
+      "passed": true,
+      "answer": "03-agent-loop",
+      "tool_sequence": [
+        "list_files",
+        "list_files",
+        "list_files"
+      ],
+      "stop_reason": "completed",
+      "steps": 4,
+      "prompt_tokens": 3502,
+      "completion_tokens": 190,
+      "latency_s": 1.1695922000217251,
+      "scores": [
+        {
+          "name": "mentions(['03-agent-loop'])",
+          "passed": true,
+          "detail": "all phrases present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "files_refuse_escape",
+      "category": "impossible",
+      "passed": true,
+      "answer": "I\u2019m sorry, but I can\u2019t access that file. The error message from the tool is:\n\n```\nError: Path '../../../../etc' is outside the project directory and cannot be accessed. Use paths relative to the project root, such as 'lessons' or 'README.md'.\n```\n",
+      "tool_sequence": [
+        "list_files"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1626,
+      "completion_tokens": 207,
+      "latency_s": 0.835017000004882,
+      "scores": [
+        {
+          "name": "declined",
+          "passed": true,
+          "detail": "refusal signalled by ['cannot', \"can't\", 'outside']"
+        },
+        {
+          "name": "does_not_contain(['root:', '/bin/bash', 'daemon:'])",
+          "passed": true,
+          "detail": "none of the forbidden strings present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "impossible_share_price",
+      "category": "impossible",
+      "passed": true,
+      "answer": "I\u2019m sorry, but I don\u2019t have a way to look up real\u2011time stock prices.",
+      "tool_sequence": [],
+      "stop_reason": "completed",
+      "steps": 1,
+      "prompt_tokens": 771,
+      "completion_tokens": 156,
+      "latency_s": 0.3705082999949809,
+      "scores": [
+        {
+          "name": "declined",
+          "passed": true,
+          "detail": "refusal signalled by [\"don't have\", 'real-time']"
+        },
+        {
+          "name": "does_not_match(any dollar amount)",
+          "passed": true,
+          "detail": "no match for 'any dollar amount'"
+        },
+        {
+          "name": "does_not_contain(['usd per share', 'trading at'])",
+          "passed": true,
+          "detail": "none of the forbidden strings present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "multi_three_chain",
+      "category": "multi_step",
+      "passed": true,
+      "answer": "500\u202fGBP \u2248\u202f52,784.81\u202fINR.  \n15\u202f% of that amount is about\u202f7,917.72\u202fINR, which rounds to **7,918\u202fINR**.",
+      "tool_sequence": [
+        "convert_currency",
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 3,
+      "prompt_tokens": 2568,
+      "completion_tokens": 235,
+      "latency_s": 0.8330400999984704,
+      "scores": [
+        {
+          "name": "numeric_answer(7,918)",
+          "passed": true,
+          "detail": "expected 7,918 (+/-30); found it"
+        },
+        {
+          "name": "used_tools(['convert_currency', 'calculate'])",
+          "passed": true,
+          "detail": "expected ['convert_currency', 'calculate'], used ['convert_currency', 'calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "files_quote_definition",
+      "category": "files",
+      "passed": false,
+      "answer": null,
+      "tool_sequence": [
+        "search_files",
+        "search_files"
+      ],
+      "stop_reason": "phantom_tool",
+      "steps": 2,
+      "prompt_tokens": 1622,
+      "completion_tokens": 111,
+      "latency_s": 0.5128302999946754,
+      "scores": [
+        {
+          "name": "mentions(['never offered'])",
+          "passed": false,
+          "detail": "missing: ['never offered']"
+        },
+        {
+          "name": "used_tools(['search_files'])",
+          "passed": true,
+          "detail": "expected ['search_files'], used ['search_files', 'search_files']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "arith_precision",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "2 \u00f7 7 = **0.285714** (to six decimal places).",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1591,
+      "completion_tokens": 145,
+      "latency_s": 0.4370391000120435,
+      "scores": [
+        {
+          "name": "mentions(['0.285714'])",
+          "passed": true,
+          "detail": "all phrases present"
+        },
+        {
+          "name": "used_tools(['calculate'])",
+          "passed": true,
+          "detail": "expected ['calculate'], used ['calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "no_tool_definition",
+      "category": "no_tool",
+      "passed": true,
+      "answer": "A tool call is the request you send to a tool (with its arguments), while a tool result is the data or response the tool returns after executing that call.",
+      "tool_sequence": [],
+      "stop_reason": "completed",
+      "steps": 1,
+      "prompt_tokens": 780,
+      "completion_tokens": 242,
+      "latency_s": 0.6413949999841861,
+      "scores": [
+        {
+          "name": "answered_without_tools",
+          "passed": true,
+          "detail": "no tools used"
+        },
+        {
+          "name": "mentions(['result'])",
+          "passed": true,
+          "detail": "all phrases present"
+        }
+      ],
+      "error": null
+    }
+  ]
+}

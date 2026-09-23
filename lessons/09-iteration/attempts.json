@@ -1,0 +1,130 @@
+{
+  "attempts": [
+    {
+      "experiment_id": "documented_refusal",
+      "created_at": "2026-09-23T18:57:37+00:00",
+      "variable": "dataset: swaps used_tools for cited_tool_limits on one case",
+      "hypothesis": "The case may be wrong rather than the agent. convert_currency documents its seven currencies, so refusing without calling can be a well-grounded decision. Accept a refusal that cites those documented limits, and require a tool call otherwise.",
+      "baseline": "baseline",
+      "candidate": "exp_documented_refusal",
+      "predicted_fixed": [
+        "currency_unsupported"
+      ],
+      "predicted_broken": [],
+      "predicted_no_change": false,
+      "actual_fixed": [],
+      "actual_broken": [],
+      "baseline_passed": 15,
+      "candidate_passed": 15,
+      "total_cases": 16,
+      "decision": "revert",
+      "reasons": [
+        "no case changed. Nothing gained; do not carry it."
+      ],
+      "cost_per_success_before": 0.0002952333333333333,
+      "cost_per_success_after": 0.0002952333333333333,
+      "tokens_spent": 0,
+      "caveats": [],
+      "forced": false,
+      "recheck": []
+    },
+    {
+      "experiment_id": "verify_conversion",
+      "created_at": "2026-09-23T18:57:38+00:00",
+      "variable": "system prompt: the same rule, restricted to conversion/lookup tools",
+      "hypothesis": "Same fix as verify_first, scoped to conversions and lookups. If the broad version works but costs an unnecessary tool call elsewhere, the narrow version should keep the win without the collateral damage.",
+      "baseline": "baseline",
+      "candidate": "exp_verify_conversion",
+      "predicted_fixed": [
+        "currency_unsupported"
+      ],
+      "predicted_broken": [],
+      "predicted_no_change": false,
+      "actual_fixed": [],
+      "actual_broken": [],
+      "baseline_passed": 15,
+      "candidate_passed": 15,
+      "total_cases": 16,
+      "decision": "revert",
+      "reasons": [
+        "no case changed. Nothing gained; do not carry it."
+      ],
+      "cost_per_success_before": 0.0002952333333333333,
+      "cost_per_success_after": 0.00028105999999999997,
+      "tokens_spent": 0,
+      "caveats": [],
+      "forced": false,
+      "recheck": []
+    },
+    {
+      "experiment_id": "combined_verify_and_rescore",
+      "created_at": "2026-09-23T18:57:40+00:00",
+      "variable": "TWO: the verify_conversion prompt AND the documented_refusal scorer",
+      "hypothesis": "verify_conversion and documented_refusal are each individually invisible to the suite and jointly sufficient: the prompt makes the refusal cite the documented currency list, and the rescored case accepts a refusal on those grounds. Run to confirm the diagnosis, not to ship.",
+      "baseline": "baseline",
+      "candidate": "exp_combined_verify_and_rescore",
+      "predicted_fixed": [
+        "currency_unsupported"
+      ],
+      "predicted_broken": [],
+      "predicted_no_change": false,
+      "actual_fixed": [
+        "currency_unsupported"
+      ],
+      "actual_broken": [],
+      "baseline_passed": 15,
+      "candidate_passed": 16,
+      "total_cases": 16,
+      "decision": "inconclusive",
+      "reasons": [
+        "net +1 case(s) is below the 2-case threshold from the measured noise floor. The change may well be real; this suite cannot show it. Grow the dataset rather than re-running until it looks better.",
+        "cost per success 0.89x ($0.00030 -> $0.00026)."
+      ],
+      "cost_per_success_before": 0.0002952333333333333,
+      "cost_per_success_after": 0.00026349375,
+      "tokens_spent": 0,
+      "caveats": [
+        "95% intervals: baseline 72%-99%, exp_combined_verify_and_rescore 81%-100%.",
+        "Those intervals overlap, so with 16 cases the suite cannot show that this change generalises -- only that it reproduced here. Growing the dataset is the fix; re-running is not."
+      ],
+      "forced": true,
+      "recheck": []
+    },
+    {
+      "experiment_id": "verify_first",
+      "created_at": "2026-09-23T18:57:41+00:00",
+      "variable": "system prompt: adds a general 'attempt the tool before refusing' rule",
+      "hypothesis": "The agent refuses without checking because nothing tells it that a tool's error is better evidence than its own expectation. Say so explicitly and it will attempt the call, read the rejection, and refuse with grounds.",
+      "baseline": "baseline",
+      "candidate": "exp_verify_first",
+      "predicted_fixed": [
+        "currency_unsupported"
+      ],
+      "predicted_broken": [
+        "no_tool_definition"
+      ],
+      "predicted_no_change": false,
+      "actual_fixed": [
+        "currency_unsupported"
+      ],
+      "actual_broken": [
+        "files_quote_definition"
+      ],
+      "baseline_passed": 15,
+      "candidate_passed": 15,
+      "total_cases": 16,
+      "decision": "inconclusive",
+      "reasons": [
+        "net zero, but the whole result turns on ['files_quote_definition'], which nobody predicted. At one case a flake and a regression are indistinguishable, and this rule has already reverted a genuine fix on the strength of a failure that reproduced about one run in seven. Re-test before deciding: `--recheck files_quote_definition --experiment ...` costs one case, not one suite."
+      ],
+      "cost_per_success_before": 0.0002952333333333333,
+      "cost_per_success_after": 0.00027916,
+      "tokens_spent": 0,
+      "caveats": [],
+      "forced": false,
+      "recheck": [
+        "files_quote_definition"
+      ]
+    }
+  ]
+}

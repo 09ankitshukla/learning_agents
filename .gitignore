@@ -13,9 +13,15 @@ venv/
 
 # Lesson runtime artifacts
 **/runs/
-# ...except lesson 7's eval runs, which are committed artifacts: they are the
-# measured baseline the README quotes, and they let a reader run
-# `evaluate.py --compare baseline strict` without spending any tokens.
+# ...except the eval runs, which are committed artifacts: they are the measured
+# baseline the README quotes, and they let a reader run
+# `evaluate.py --compare baseline strict` and every free lesson 9 command
+# (--log, --scorecard, --replay) without spending any tokens.
+#
+# Lesson 9's experiment runs land here too (exp_*.json, noise_*.json) rather than
+# in lessons/09-iteration/, because a run is a lesson 7 artifact whoever produced
+# it -- EvalRun.load() looks in one place, and two run directories would mean two
+# places a comparison could silently fail to find its baseline.
 !lessons/07-evaluation/runs/
 !lessons/07-evaluation/runs/*.json
 **/traces/

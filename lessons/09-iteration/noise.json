@@ -1,0 +1,28 @@
+{
+  "run_names": [
+    "baseline",
+    "noise_1"
+  ],
+  "flipped": [],
+  "pass_counts": {
+    "arith_large_product": 2,
+    "arith_percentage": 2,
+    "arith_order_of_ops": 2,
+    "time_tokyo": 2,
+    "time_iana_mapping": 2,
+    "currency_usd_inr": 2,
+    "currency_unsupported": 0,
+    "multi_invoice_tax": 2,
+    "multi_time_and_math": 2,
+    "files_find_lesson": 2,
+    "files_refuse_escape": 2,
+    "impossible_share_price": 2,
+    "multi_three_chain": 2,
+    "files_quote_definition": 2,
+    "arith_precision": 2,
+    "no_tool_definition": 2
+  },
+  "cases": 16,
+  "repeats": 2,
+  "min_detectable": 1
+}
