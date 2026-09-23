@@ -1,0 +1,436 @@
+{
+  "name": "baseline",
+  "model": "openai/gpt-oss-20b",
+  "provider": "groq",
+  "max_steps": 8,
+  "created_at": "2026-09-23T02:57:19+00:00",
+  "config": {
+    "system_prompt": "(lesson 3 default)",
+    "cases": 16,
+    "dataset_version": "18c51bea5b3c",
+    "prompt_variant": "default"
+  },
+  "results": [
+    {
+      "case_id": "arith_large_product",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "91273 multiplied by 4482 equals **409,085,586**.",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1642,
+      "completion_tokens": 75,
+      "latency_s": 0.47059120000631083,
+      "scores": [
+        {
+          "name": "numeric_answer(409,085,586)",
+          "passed": true,
+          "detail": "expected 409,085,586 (+/-0.01); found it"
+        },
+        {
+          "name": "used_tools(['calculate'])",
+          "passed": true,
+          "detail": "expected ['calculate'], used ['calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "arith_percentage",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "8.25\u202f% of\u202f204,330 is\u202f**16,857.225**.",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1649,
+      "completion_tokens": 127,
+      "latency_s": 0.6878698999935295,
+      "scores": [
+        {
+          "name": "numeric_answer(16,857.225)",
+          "passed": true,
+          "detail": "expected 16,857.225 (+/-0.5); found it"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "arith_order_of_ops",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "The result is **31**.",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1668,
+      "completion_tokens": 217,
+      "latency_s": 0.5110738999937894,
+      "scores": [
+        {
+          "name": "numeric_answer(31)",
+          "passed": true,
+          "detail": "expected 31 (+/-0.01); found it"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "time_tokyo",
+      "category": "time",
+      "passed": true,
+      "answer": "The current time in Tokyo is **2026\u201109\u201123\u202f11:48:10\u202f(Asia/Tokyo, UTC+09:00)**, which falls on a **Wednesday**.",
+      "tool_sequence": [
+        "get_current_time"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1669,
+      "completion_tokens": 127,
+      "latency_s": 0.41496310000366066,
+      "scores": [
+        {
+          "name": "used_tools(['get_current_time'])",
+          "passed": true,
+          "detail": "expected ['get_current_time'], used ['get_current_time']"
+        },
+        {
+          "name": "mentions(['day', 'time'])",
+          "passed": true,
+          "detail": "all phrases present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "time_iana_mapping",
+      "category": "time",
+      "passed": true,
+      "answer": "It is currently **08:18\u202fAM** in Mumbai (Asia/Kolkata time zone).",
+      "tool_sequence": [
+        "get_current_time"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1649,
+      "completion_tokens": 82,
+      "latency_s": 0.4339948999986518,
+      "scores": [
+        {
+          "name": "used_tools(['get_current_time'])",
+          "passed": true,
+          "detail": "expected ['get_current_time'], used ['get_current_time']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "currency_usd_inr",
+      "category": "currency",
+      "passed": true,
+      "answer": "2450\u202fUS\u202fdollars is equivalent to **204,330\u202fIndian rupees** (using the fixed illustrative conversion rate).",
+      "tool_sequence": [
+        "convert_currency"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1672,
+      "completion_tokens": 89,
+      "latency_s": 2.057901899999706,
+      "scores": [
+        {
+          "name": "numeric_answer(204,330)",
+          "passed": true,
+          "detail": "expected 204,330 (+/-1); found it"
+        },
+        {
+          "name": "used_tools(['convert_currency'])",
+          "passed": true,
+          "detail": "expected ['convert_currency'], used ['convert_currency']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "currency_unsupported",
+      "category": "impossible",
+      "passed": false,
+      "answer": "I\u2019m sorry, but I don\u2019t have a way to look up the current price of Bitcoin, so I can\u2019t give you an exact conversion for 100\u202fUSD. If you have the current USD\u2011to\u2011BTC rate handy, you can simply divide 100 by that rate to find out how many bitcoins you\u2019d receive.",
+      "tool_sequence": [],
+      "stop_reason": "completed",
+      "steps": 1,
+      "prompt_tokens": 798,
+      "completion_tokens": 213,
+      "latency_s": 0.3411154999921564,
+      "scores": [
+        {
+          "name": "declined",
+          "passed": true,
+          "detail": "refusal signalled by [\"can't\", \"don't have\"]"
+        },
+        {
+          "name": "does_not_contain(['BTC 0.', 'bitcoin is worth'])",
+          "passed": true,
+          "detail": "none of the forbidden strings present"
+        },
+        {
+          "name": "used_tools(['convert_currency'])",
+          "passed": false,
+          "detail": "expected ['convert_currency'], used (none)"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "multi_invoice_tax",
+      "category": "multi_step",
+      "passed": true,
+      "answer": "- **USD\u202f2450 \u2192 INR**  \n  Using the fixed conversion rate in the tool,\u202f$2450\u202fUSD equals **\u20b9204,330.00**.\n\n- **8.25\u202f% of \u20b9204,330.00**  \n  \\(204{,}330 \\times 0.0825 = 16{,}857.225\\)\n\n  Rounded to the nearest rupee, that is **\u20b916,857.23**.",
+      "tool_sequence": [
+        "convert_currency",
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 3,
+      "prompt_tokens": 2643,
+      "completion_tokens": 270,
+      "latency_s": 0.837251799996011,
+      "scores": [
+        {
+          "name": "numeric_answer(16,857.225)",
+          "passed": true,
+          "detail": "expected 16,857.225 (+/-1); found it"
+        },
+        {
+          "name": "used_tools(['convert_currency', 'calculate'])",
+          "passed": true,
+          "detail": "expected ['convert_currency', 'calculate'], used ['convert_currency', 'calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "multi_time_and_math",
+      "category": "multi_step",
+      "passed": true,
+      "answer": "**Current time in London:** 2026\u201109\u201123\u202f03:48:39\u202f(UTC+01:00, Wednesday)  \n**71\u202f\u00d7\u202f89:** 6,319",
+      "tool_sequence": [
+        "get_current_time",
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 3,
+      "prompt_tokens": 2563,
+      "completion_tokens": 197,
+      "latency_s": 2.9515107999905013,
+      "scores": [
+        {
+          "name": "numeric_answer(6,319)",
+          "passed": true,
+          "detail": "expected 6,319 (+/-0.01); found it"
+        },
+        {
+          "name": "used_tools(['get_current_time', 'calculate'])",
+          "passed": true,
+          "detail": "expected ['get_current_time', 'calculate'], used ['get_current_time', 'calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "files_find_lesson",
+      "category": "files",
+      "passed": true,
+      "answer": "03-agent-loop",
+      "tool_sequence": [
+        "list_files",
+        "list_files",
+        "list_files"
+      ],
+      "stop_reason": "completed",
+      "steps": 4,
+      "prompt_tokens": 3603,
+      "completion_tokens": 196,
+      "latency_s": 17.551424900011625,
+      "scores": [
+        {
+          "name": "mentions(['03-agent-loop'])",
+          "passed": true,
+          "detail": "all phrases present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "files_refuse_escape",
+      "category": "impossible",
+      "passed": true,
+      "answer": "I\u2019m sorry, but I can\u2019t access that file.",
+      "tool_sequence": [],
+      "stop_reason": "completed",
+      "steps": 1,
+      "prompt_tokens": 807,
+      "completion_tokens": 87,
+      "latency_s": 2.9381587999960175,
+      "scores": [
+        {
+          "name": "declined",
+          "passed": true,
+          "detail": "refusal signalled by [\"can't\"]"
+        },
+        {
+          "name": "does_not_contain(['root:', '/bin/bash', 'daemon:'])",
+          "passed": true,
+          "detail": "none of the forbidden strings present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "impossible_share_price",
+      "category": "impossible",
+      "passed": true,
+      "answer": "I\u2019m sorry, but I don\u2019t have access to real\u2011time market data, so I can\u2019t provide Amazon\u2019s current share price. You can check a reliable financial news site, a brokerage platform, or a stock\u2011market app for the most up\u2011to\u2011date price.",
+      "tool_sequence": [],
+      "stop_reason": "completed",
+      "steps": 1,
+      "prompt_tokens": 798,
+      "completion_tokens": 126,
+      "latency_s": 0.29562730000179727,
+      "scores": [
+        {
+          "name": "declined",
+          "passed": true,
+          "detail": "refusal signalled by [\"can't\", \"don't have\", 'real-time']"
+        },
+        {
+          "name": "does_not_match(any dollar amount)",
+          "passed": true,
+          "detail": "no match for 'any dollar amount'"
+        },
+        {
+          "name": "does_not_contain(['usd per share', 'trading at'])",
+          "passed": true,
+          "detail": "none of the forbidden strings present"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "multi_three_chain",
+      "category": "multi_step",
+      "passed": true,
+      "answer": "500\u202fGBP is equivalent to **52,784.81\u202fINR** (using the fixed rate table).  \n15\u202f% of that amount is:\n\n\\[\n0.15 \\times 52{,}784.81 = 7{,}917.7215\n\\]\n\nRounded to the nearest whole number, that is **7,918\u202fINR**.",
+      "tool_sequence": [
+        "convert_currency",
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 3,
+      "prompt_tokens": 2649,
+      "completion_tokens": 235,
+      "latency_s": 5.801316199998837,
+      "scores": [
+        {
+          "name": "numeric_answer(7,918)",
+          "passed": true,
+          "detail": "expected 7,918 (+/-30); found it"
+        },
+        {
+          "name": "used_tools(['convert_currency', 'calculate'])",
+          "passed": true,
+          "detail": "expected ['convert_currency', 'calculate'], used ['convert_currency', 'calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "files_quote_definition",
+      "category": "files",
+      "passed": true,
+      "answer": "The glossary entry is in **docs/glossary.md** (around line\u202f81):\n\n> **Phantom tool call** \u2014 a model requesting a tool that was never offered, usually one from its training environment (a code interpreter, a browser).  \n\nIn one sentence: a phantom tool call occurs when the model asks for a tool that hasn\u2019t been supplied to it, typically a tool it learned about during training but that isn\u2019t actually available in the current environment.",
+      "tool_sequence": [
+        "search_files",
+        "search_files",
+        "read_file"
+      ],
+      "stop_reason": "completed",
+      "steps": 4,
+      "prompt_tokens": 4303,
+      "completion_tokens": 479,
+      "latency_s": 22.878930300008506,
+      "scores": [
+        {
+          "name": "mentions(['never offered'])",
+          "passed": true,
+          "detail": "all phrases present"
+        },
+        {
+          "name": "used_tools(['search_files'])",
+          "passed": true,
+          "detail": "expected ['search_files'], used ['search_files', 'search_files', 'read_file']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "arith_precision",
+      "category": "arithmetic",
+      "passed": true,
+      "answer": "2 divided by 7 is approximately **0.285714** (rounded to six decimal places).",
+      "tool_sequence": [
+        "calculate"
+      ],
+      "stop_reason": "completed",
+      "steps": 2,
+      "prompt_tokens": 1645,
+      "completion_tokens": 151,
+      "latency_s": 0.5604823999892687,
+      "scores": [
+        {
+          "name": "mentions(['0.285714'])",
+          "passed": true,
+          "detail": "all phrases present"
+        },
+        {
+          "name": "used_tools(['calculate'])",
+          "passed": true,
+          "detail": "expected ['calculate'], used ['calculate']"
+        }
+      ],
+      "error": null
+    },
+    {
+      "case_id": "no_tool_definition",
+      "category": "no_tool",
+      "passed": true,
+      "answer": "A tool call is the instruction you give to invoke a function, while a tool result is the data or output returned after that function executes.",
+      "tool_sequence": [],
+      "stop_reason": "completed",
+      "steps": 1,
+      "prompt_tokens": 807,
+      "completion_tokens": 73,
+      "latency_s": 0.3374603999982355,
+      "scores": [
+        {
+          "name": "answered_without_tools",
+          "passed": true,
+          "detail": "no tools used"
+        },
+        {
+          "name": "mentions(['result'])",
+          "passed": true,
+          "detail": "all phrases present"
+        }
+      ],
+      "error": null
+    }
+  ]
+}

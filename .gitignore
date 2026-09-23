@@ -13,6 +13,11 @@ venv/
 
 # Lesson runtime artifacts
 **/runs/
+# ...except lesson 7's eval runs, which are committed artifacts: they are the
+# measured baseline the README quotes, and they let a reader run
+# `evaluate.py --compare baseline strict` without spending any tokens.
+!lessons/07-evaluation/runs/
+!lessons/07-evaluation/runs/*.json
 **/traces/
 **/.cache/
 **/*.sqlite
