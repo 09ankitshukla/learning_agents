@@ -79,7 +79,7 @@ Note that hosted providers retire models regularly — `check_env.py` prints the
 | # | Lesson | Concepts | Deliverable |
 |---|---|---|---|
 | 10 | [Multi-agent](lessons/10-multi-agent) | sub-agents as tools, delegation vs handoff, least privilege, recursion guards, shared state | delegating agent + pipeline, measured against solo |
-| 11 | Guardrails and failure modes | prompt injection, tool sandboxing, allowlists, approval gates | hardened agent + injection demo |
+| 11 | [Guardrails](lessons/11-guardrails) | threat modelling, prompt injection measured, trust boundaries, approval gates, secret redaction | hardened agent + injection eval cases |
 | 12 | Deployment | HTTP API, streaming, auth, containers, config and secrets | Dockerised service, deployed |
 | 13 | Framework comparison | rebuild lesson 3 in a framework; see exactly what's abstracted | side-by-side implementations |
 
@@ -104,13 +104,13 @@ uv run lessons/01-structured-output/extract.py
 
 ## Status
 
-Lessons 00 through 10 are complete and verified against a live model. Lesson 11 is next.
+Lessons 00 through 11 are complete and verified against a live model. Lesson 12 is next.
 
 There's a test suite from lesson 6, an eval harness from lesson 7, and an experiment log from lesson 9:
 
 ```powershell
 uv sync --all-extras
-uv run pytest lessons                    # 281 tests, offline, ~2 seconds
+uv run pytest lessons                    # 336 tests, offline, ~2 seconds
 uv run pytest lessons -m live            # 8 more, hits the API
 
 uv run lessons/07-evaluation/evaluate.py --show baseline      # 15/16, from a saved run
@@ -118,6 +118,8 @@ uv run lessons/07-evaluation/evaluate.py --compare baseline strict
 uv run lessons/09-iteration/iterate.py --log                  # 4 attempts, rejections included
 uv run lessons/09-iteration/iterate.py --scorecard            # predictions were 1/4 right
 uv run lessons/10-multi-agent/multi.py --team                 # the team wiring
+uv run lessons/11-guardrails/harden.py --threats              # the threat model
+uv run lessons/11-guardrails/harden.py --controls             # every guard, no model needed
 ```
 
 All of those cost nothing. The committed eval runs let you see a measured regression, and the committed attempt log lets you see four experiments — three of which failed — without spending a token.

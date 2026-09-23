@@ -208,6 +208,30 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **Relay vs shared state** — passing only the previous stage's output, versus continuing the whole message list. Relay is cheap and lossy: facts a later stage needs must be plumbed to it explicitly. Shared lets a stage verify rather than trust, and costs about twice as much.
 
+## Security
+
+**Threat model** — who the adversary is, what they control, and what would count as a breach, written down before any control is built. A control not traceable to a threat is decoration; a threat with no control is at least honestly recorded.
+
+**Prompt injection** — instructions planted in content the agent retrieves, which it then follows as though they came from the user. Unfixable at the prompt layer: a single context window gives instructions and data no privileged channel to distinguish them.
+
+**Trust boundary** — the line between what the user said and what a tool returned. Lesson 3's loop has no such line, which is the root cause of every injection.
+
+**Untrusted-data envelope** — delimiting and labelling a tool result so the model can tell it is data. Three parts do work: the delimiters, the source name, and a reminder placed *after* the content, because attacks compete on recency.
+
+**Forged delimiter** — untrusted content that closes your envelope and speaks from outside it. Defeated the envelope in measurement. Worth escaping, and worth flagging: content containing your own framing tags is suspicious *by construction*, which makes it a near-zero-false-positive signal.
+
+**Allowlist vs denylist** — an allowlist says what is permitted (a resolved path inside the project; a registered tool name) and is a real boundary. A denylist says what is forbidden (`.env`, `.git`) and expresses "this specific thing is secret". Keep them separate: they stop different things.
+
+**Approval gate** — a human yes required before a named tool runs. The only control that stops injection outright, because it refuses a class of *action* without judging why the model wanted it. Cost: a gate on a frequently-used tool is an outage, so the gated set must be chosen by consequence.
+
+**Least privilege** — each agent gets only the tools its job needs. Becomes a security boundary rather than tidiness once a sub-agent processes untrusted text.
+
+**Canary** — a token appearing nowhere else, planted in a payload so "did the attack work" is a substring check. Asking a model to judge whether an attack succeeded makes the measurement as attackable as the thing measured.
+
+**Security theatre** — a control that raises effort while appearing to prevent. The test that separates it from the real thing: **does the control consult the model?** If it does, it fails exactly when you need it.
+
+**Defence in depth** — layering controls so the ones that merely narrow sit behind ones that stop. Measured value: the exfiltration payload failed because of the denylist and the gate, and would have failed identically had the model been completely persuaded.
+
 ## Operations
 
 **Trace / span** — a structured record of a run and its individual steps. How you debug something non-deterministic.

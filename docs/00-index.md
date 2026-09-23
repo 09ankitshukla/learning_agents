@@ -306,9 +306,31 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **Five probes at ~25k tokens beat an 82k suite run.** `--evaluate` is implemented and deliberately unrun: the probes had already shown delegation fixed nothing, cost 30–90% more, and produced one apparent regression that was a measurement artifact. Lesson 9's method applied rather than described. The prediction's *direction* was confirmed and its *specifics* were wrong — it named two cases that passed and misattributed the third. Same pattern as lesson 9: **predicting that something will break is far easier than predicting what.**
 
-## Lesson 11 — Guardrails and failure modes
+## Lesson 11 — Guardrails · [notes](../lessons/11-guardrails/NOTES.md)
 
-*Not yet written.*
+**One idea, and it is a negative result. Prompt injection cannot be fixed at the prompt layer.** Lesson 3's loop appends a tool result as an ordinary message; no field means "this is data, not instructions". A single flat context window puts the user's request and a file's contents side by side with no privileged channel, so nothing written in a system prompt restores a distinction the architecture does not have. **The goal is bounding damage, not prevention** — and that is achievable.
+
+**The only test that matters for a control: does it consult the model?** Four controls here STOP an attack (the path sandbox, the `.env` denylist, the approval gate, the registry-as-allowlist) and they all refuse a *class of action* without judging intent, which is exactly why they hold. Four only NARROW, and all four work by asking the model nicely. **A control that depends on the model behaving well fails precisely when you need it**, so it belongs behind one that does not.
+
+**Measured: the full guardrail stack turned a 100%-reliable attack into an 80%-reliable one.** The `fake_authority` payload closes `</untrusted_data>`, speaks as SYSTEM, and reopens the envelope — defeating the control designed to stop it. 5/5 compliance unguarded, 4/5 with every guard on, for +14% mean token overhead.
+
+**Three of four payloads were held by the base model with no guards at all.** `gpt-oss-120b` ignores "IGNORE ALL PREVIOUS INSTRUCTIONS" unaided. The crude attack is dead — worth knowing before spending a week writing filters for it, and it means the guardrails' measured contribution on this set was close to zero.
+
+**A fix validated on one run is not validated.** Escaping envelope tags held on the first attempt, so it went down as fixed; five repeats showed 4/5 still complying. Lesson 9's finding recurring where it costs more — and note that under-measurement always produces the *comfortable* answer.
+
+**Escaping the delimiter is still the right kind of control.** Content containing your own framing tags is suspicious *by construction*: legitimate documents do not contain them, so it is a near-zero-false-positive signal, unlike "does this look like an instruction?".
+
+**The layer that held was the one that ignored the model.** The exfiltration payload failed because the denylist refuses `.env` and the gate refuses the write. Had the model been fully persuaded — and `fake_authority` proves it can be — nothing would have changed. That is what defence in depth actually buys.
+
+**Injection's real effect was instability, not exfiltration.** Told to do something its tools cannot do, the model invented `repo_browser.list_files` and the run aborted with `stop_reason=phantom_tool`. Lesson 2's bug, induced on purpose by an attacker; the allowlist refused it, so it is safe and still a failed run.
+
+**A guardrail is a per-step tax, worst on short results.** The envelope is a fixed ~264 characters: +8% on a 3,195-char file read, **+113%** on a 235-char directory listing — and re-sent every step, so it compounds. "Wrap everything" is how you double a bill protecting data that was never external.
+
+**Third instance of one bug shape: a missing measurement that defaults to the reassuring answer.** A rate-limited run was tallied as a successful defence, because `complied` defaults to False and a 429 looked exactly like a guard holding. Lesson 7 cached a score, lesson 10 lost sub-agent tokens, lesson 11 scored an error as safe. **"We do not know" and "it held" are different results.**
+
+**A guard that misses the secret it was written for is theatre.** The redaction pattern missed `LLM_API_KEY=` — this project's own variable — because `\b` asserts no boundary inside `LLM_API_KEY`. Found by counting patterns, not by reasoning.
+
+**Disclosure does not work.** The envelope asks the agent to report embedded instructions. It resists and says nothing, so a silent success and a silent failure look identical to the user.
 
 ## Lesson 12 — Deployment
 
