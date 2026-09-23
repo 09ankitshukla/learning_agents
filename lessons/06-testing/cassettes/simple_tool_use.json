@@ -1,0 +1,70 @@
+{
+  "name": "simple_tool_use",
+  "entries": [
+    {
+      "key": "997d6bca0acd5a172536",
+      "roles": [
+        "system",
+        "user"
+      ],
+      "tools_offered": [
+        "get_current_time",
+        "calculate",
+        "convert_currency",
+        "list_files",
+        "read_file",
+        "search_files"
+      ],
+      "response": {
+        "text": null,
+        "finish_reason": "tool_calls",
+        "model": "openai/gpt-oss-120b",
+        "reasoning": "We need to get current time in Tokyo. Use get_current_time with timezone 'Asia/Tokyo'.",
+        "usage": {
+          "prompt_tokens": 799,
+          "completion_tokens": 53,
+          "reasoning_tokens": 22
+        },
+        "tool_calls": [
+          {
+            "id": "fc_f1019f59-334c-4829-957a-439afbbf9f44",
+            "name": "get_current_time",
+            "arguments": {
+              "timezone": "Asia/Tokyo"
+            },
+            "malformed_arguments": null
+          }
+        ]
+      }
+    },
+    {
+      "key": "a167e0d06c5e9740088a",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "tool"
+      ],
+      "tools_offered": [
+        "get_current_time",
+        "calculate",
+        "convert_currency",
+        "list_files",
+        "read_file",
+        "search_files"
+      ],
+      "response": {
+        "text": "It\u2019s currently **11:30\u202fAM** on Wednesday, September\u202f23\u202f2026 in Tokyo (Japan Standard Time, UTC+9).",
+        "finish_reason": "stop",
+        "model": "openai/gpt-oss-120b",
+        "reasoning": "We have the current time in Tokyo. Need to answer the user.",
+        "usage": {
+          "prompt_tokens": 854,
+          "completion_tokens": 54,
+          "reasoning_tokens": 15
+        },
+        "tool_calls": []
+      }
+    }
+  ]
+}

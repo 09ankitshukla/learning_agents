@@ -29,16 +29,27 @@ from datetime import datetime
 from typing import Any, Callable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from llmkit import ToolCall, ToolSpec
+from llmkit import ToolCall, ToolSpec  # noqa: F401
 
 
-class ToolError(Exception):
-    """A tool could not do its job for a reason the model should hear about.
-
-    Distinct from a bug. "You gave me a currency I don't support" is a ToolError
-    and the model can recover from it by picking a different currency. A
-    TypeError in your own code is not -- that's yours to fix.
-    """
+# ToolError means: a tool could not do its job, for a reason the model should hear
+# about. Distinct from a bug. "You gave me a currency I don't support" is a
+# ToolError and the model can recover by choosing another. A TypeError in your own
+# code is not -- that one is yours to fix.
+#
+# It is imported from llmkit rather than defined here, and that is a bug fix rather
+# than a style choice. This file originally declared its own `class
+# ToolError(Exception)`. When lesson 3 promoted the dispatcher into
+# `llmkit.tools.ToolRegistry`, that dispatcher caught `llmkit`'s ToolError -- a
+# *different class* -- so errors raised here fell through to the generic handler.
+# Every timezone and currency error in lessons 3 to 5 was reported as
+# "failed unexpectedly (ToolError)" instead of its actual, actionable message,
+# silently destroying the self-correction behaviour scenario 6 demonstrates.
+#
+# Found by lesson 6's test suite, which is the best possible advertisement for it:
+# two exception classes with the same name are invisible to the eye and obvious to
+# an assertion on the error text.
+from llmkit import ToolError  # noqa: F401  (re-exported for this lesson's imports)
 
 
 # ---------------------------------------------------------------------------

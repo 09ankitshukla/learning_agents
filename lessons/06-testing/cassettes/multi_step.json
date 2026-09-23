@@ -1,0 +1,154 @@
+{
+  "name": "multi_step",
+  "entries": [
+    {
+      "key": "4ccf071c3a187fee7abe",
+      "roles": [
+        "system",
+        "user"
+      ],
+      "tools_offered": [
+        "get_current_time",
+        "calculate",
+        "convert_currency",
+        "list_files",
+        "read_file",
+        "search_files"
+      ],
+      "response": {
+        "text": null,
+        "finish_reason": "tool_calls",
+        "model": "openai/gpt-oss-120b",
+        "reasoning": "We need current time in Mumbai (timezone Asia/Kolkata). Also need conversion of 2450 USD to INR, then compute 8.25% of that INR amount.\n\nWe need to call get_current_time with timezone Asia/Kolkata. Then convert_currency from USD to INR for amount 2450. Then calculate 8.25% of that INR amount: i.e., INR_amount * 0.0825.\n\nWe need to use calculate tool for percentage.\n\nProceed stepwise.",
+        "usage": {
+          "prompt_tokens": 825,
+          "completion_tokens": 132,
+          "reasoning_tokens": 101
+        },
+        "tool_calls": [
+          {
+            "id": "fc_b93551c4-8b72-4660-816d-318dea7cae37",
+            "name": "get_current_time",
+            "arguments": {
+              "timezone": "Asia/Kolkata"
+            },
+            "malformed_arguments": null
+          }
+        ]
+      }
+    },
+    {
+      "key": "9ad4cc7845e609b6a83b",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "tool"
+      ],
+      "tools_offered": [
+        "get_current_time",
+        "calculate",
+        "convert_currency",
+        "list_files",
+        "read_file",
+        "search_files"
+      ],
+      "response": {
+        "text": null,
+        "finish_reason": "tool_calls",
+        "model": "openai/gpt-oss-120b",
+        "reasoning": "We have current time. Next need to convert 2450 USD to INR. Use convert_currency.",
+        "usage": {
+          "prompt_tokens": 880,
+          "completion_tokens": 65,
+          "reasoning_tokens": 21
+        },
+        "tool_calls": [
+          {
+            "id": "fc_29449513-3b48-48d9-bfe8-6162e0a2774e",
+            "name": "convert_currency",
+            "arguments": {
+              "amount": 2450,
+              "from_currency": "USD",
+              "to_currency": "INR"
+            },
+            "malformed_arguments": null
+          }
+        ]
+      }
+    },
+    {
+      "key": "5fc534ae385ca831ce20",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "tool",
+        "assistant",
+        "tool"
+      ],
+      "tools_offered": [
+        "get_current_time",
+        "calculate",
+        "convert_currency",
+        "list_files",
+        "read_file",
+        "search_files"
+      ],
+      "response": {
+        "text": null,
+        "finish_reason": "tool_calls",
+        "model": "openai/gpt-oss-120b",
+        "reasoning": "We have current time in Mumbai (Asia/Kolkata) and conversion USD to INR: 2450 USD = 204,330 INR. Need to compute 8.25% of that INR amount. Use calculate.",
+        "usage": {
+          "prompt_tokens": 946,
+          "completion_tokens": 71,
+          "reasoning_tokens": 46
+        },
+        "tool_calls": [
+          {
+            "id": "fc_1bee8756-0dbd-4c83-a62d-adfd8495984c",
+            "name": "calculate",
+            "arguments": {
+              "expression": "204330 * 0.0825"
+            },
+            "malformed_arguments": null
+          }
+        ]
+      }
+    },
+    {
+      "key": "4ce1c4d8562044496b91",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "tool",
+        "assistant",
+        "tool",
+        "assistant",
+        "tool"
+      ],
+      "tools_offered": [
+        "get_current_time",
+        "calculate",
+        "convert_currency",
+        "list_files",
+        "read_file",
+        "search_files"
+      ],
+      "response": {
+        "text": "- Current time in Mumbai (Asia/Kolkata): **08:01\u202fAM** on Wednesday,\u202fSeptember\u202f23\u202f2026.  \n- Converting **USD\u202f2450** to Indian rupees gives **\u20b9204,330** (using the fixed rate in the tool).  \n- **8.25\u202f%** of \u20b9204,330 is **\u20b916,857.23**.",
+        "finish_reason": "stop",
+        "model": "openai/gpt-oss-120b",
+        "reasoning": null,
+        "usage": {
+          "prompt_tokens": 991,
+          "completion_tokens": 87,
+          "reasoning_tokens": 0
+        },
+        "tool_calls": []
+      }
+    }
+  ]
+}

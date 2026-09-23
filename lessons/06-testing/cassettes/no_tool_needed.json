@@ -1,0 +1,32 @@
+{
+  "name": "no_tool_needed",
+  "entries": [
+    {
+      "key": "d2716a6d6917a2a8ac90",
+      "roles": [
+        "system",
+        "user"
+      ],
+      "tools_offered": [
+        "get_current_time",
+        "calculate",
+        "convert_currency",
+        "list_files",
+        "read_file",
+        "search_files"
+      ],
+      "response": {
+        "text": "A tool call is a programmatic request that the assistant makes to an external function (such as calculation, file access, or time retrieval) to obtain specific data or perform an operation needed to answer the user\u2019s query.",
+        "finish_reason": "stop",
+        "model": "openai/gpt-oss-120b",
+        "reasoning": "The user asks: \"In one sentence, what is a tool call?\" They want a definition in one sentence. No tool needed. Provide answer.",
+        "usage": {
+          "prompt_tokens": 800,
+          "completion_tokens": 84,
+          "reasoning_tokens": 31
+        },
+        "tool_calls": []
+      }
+    }
+  ]
+}

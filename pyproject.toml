@@ -36,9 +36,12 @@ retrieval = [
     "numpy==2.5.3",
 ]
 
+# Lesson 6 (testing). pytest-asyncio was pinned here from the start and later
+# removed: nothing in this project is async, so it contributed only a deprecation
+# warning on every run. An unused test dependency is not free -- it adds noise that
+# trains you to ignore warnings.
 dev = [
     "pytest==8.3.3",
-    "pytest-asyncio==0.24.0",
 ]
 
 [build-system]
