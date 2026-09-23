@@ -26,6 +26,9 @@ venv/
 !lessons/07-evaluation/runs/*.json
 **/traces/
 **/.cache/
+# Lesson 11's approval-gated write tool writes here. Runtime output, not an artifact --
+# and a directory an injected instruction would love to see committed.
+**/outbox/
 **/*.sqlite
 **/*.db
 **/index/
