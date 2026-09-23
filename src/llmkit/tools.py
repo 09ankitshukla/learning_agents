@@ -90,6 +90,16 @@ class ToolRegistry:
     def names(self) -> list[str]:
         return sorted(self._tools)
 
+    @property
+    def tools(self) -> list[Tool]:
+        """Specs paired with their functions, in registration order.
+
+        Added for lesson 9, which builds a registry that is identical to another
+        except for one tool's *description*. Doing that needs the functions, and
+        reaching into `_tools` from outside would be the wrong way to get them.
+        """
+        return list(self._tools.values())
+
     def __contains__(self, name: object) -> bool:
         return name in self._tools
 

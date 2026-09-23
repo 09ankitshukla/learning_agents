@@ -3,11 +3,12 @@
   "model": "openai/gpt-oss-20b",
   "provider": "groq",
   "max_steps": 8,
-  "created_at": "2026-09-23T02:57:20+00:00",
+  "created_at": "2026-09-23T17:59:00+00:00",
   "config": {
     "system_prompt": "You solve problems using tools.\nAlways use a tool for arithmetic, times, currency conversion and file access. Never compute or recall a value you could look up exactly.\nIf no tool can answer the question, say plainly that you cannot and stop. Never guess a number you have not obtained from a tool.\nWhen you have what you need, answer concisely.",
     "cases": 16,
-    "dataset_version": "18c51bea5b3c",
+    "dataset_version": "v2:31cae8715cac",
+    "variant_key": "",
     "prompt_variant": "strict"
   },
   "results": [

@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from dataset import CASES, Category, EvalCase
-from scorers import ScoreResult, score_case
+from scorers import ScoreResult, score_case, scorer_label
 
 RUNS_DIR = Path(__file__).parent / "runs"
 
@@ -123,6 +123,18 @@ class EvalRun:
     @property
     def errors(self) -> list[CaseResult]:
         return [r for r in self.results if r.error]
+
+    @property
+    def tokens_actually_spent(self) -> int:
+        """Tokens this run really cost, excluding cases replayed from cache.
+
+        Distinct from `total_tokens`, which is what the configuration costs cold and is
+        the right input to cost per success. Both are legitimate; reporting the first as
+        the second makes a free re-score look like a full run and would have made
+        lesson 9's changelog claim 130,000 tokens for about 63,000 of actual spend.
+        """
+        cached = set(self.config.get("cached_cases", []))
+        return sum(r.total_tokens for r in self.results if r.case_id not in cached)
 
     def by_category(self) -> dict[str, tuple[int, int]]:
         out: dict[str, tuple[int, int]] = {}
@@ -221,7 +233,13 @@ class Execution:
         return self.stop_reason == "completed" and bool(self.final_answer)
 
 
-def cache_key(case: EvalCase, model: str, max_steps: int, system_prompt: str | None) -> str:
+def cache_key(
+    case: EvalCase,
+    model: str,
+    max_steps: int,
+    system_prompt: str | None,
+    variant: str = "",
+) -> str:
     """Identity of an agent *execution* -- deliberately not of its score.
 
     Includes everything that changes what the agent does: the question, the model,
@@ -230,9 +248,25 @@ def cache_key(case: EvalCase, model: str, max_steps: int, system_prompt: str | N
 
     A cache keyed on the case id alone would be worse than no cache, serving results
     from a different configuration while you believed you compared one thing.
+
+    `variant` was added in lesson 9 and is the interesting part. The four fields
+    above were everything lesson 7 could change, so the key was complete *for
+    lesson 7*. Lesson 9 varies tool descriptions, which changes the agent's
+    behaviour and appears nowhere in the key -- so a tool-description experiment
+    would have been silently served the baseline's cached runs and reported "no
+    change". The same class of bug as caching a score: a cache key that omits a
+    variable turns a measurement tool into a confident liar.
+
+    It is left as a caller-supplied string rather than something the harness
+    derives, because the harness cannot know what a future lesson will vary. That
+    puts the obligation on the caller, which is a sharp edge: forget to pass it and
+    you get silent reuse, not an error. Lesson 9's `Config.residual_key` owns this,
+    and `test_iteration.py` pins that two different configs never share a key.
+
+    Empty by default, so every execution cached before lesson 9 stays valid.
     """
     digest = hashlib.sha256()
-    for part in (case.id, case.question, model, str(max_steps), system_prompt or ""):
+    for part in (case.id, case.question, model, str(max_steps), system_prompt or "", variant):
         digest.update(part.encode("utf-8"))
     return digest.hexdigest()[:20]
 
@@ -267,11 +301,17 @@ def run_case(
     system_prompt: str | None = None,
     use_cache: bool = True,
     on_progress=None,
+    variant_key: str = "",
 ) -> tuple[CaseResult, bool]:
-    """Execute one case and score it. Returns (result, came_from_cache)."""
+    """Execute one case and score it. Returns (result, came_from_cache).
+
+    `variant_key` describes anything about this execution that the cache key cannot
+    see from its other arguments -- in practice, a modified tool registry. See
+    `cache_key`.
+    """
     from loop import run_agent
 
-    key = cache_key(case, client.config.model, case.max_steps, system_prompt)
+    key = cache_key(case, client.config.model, case.max_steps, system_prompt, variant_key)
     from_cache = False
     execution: Execution | None = None
 
@@ -355,6 +395,8 @@ def run_eval(
     use_cache: bool = True,
     pause_between: float = 0.0,
     on_progress=None,
+    variant_key: str = "",
+    extra_config: dict[str, Any] | None = None,
 ) -> tuple[EvalRun, int]:
     """Run the suite. Returns (run, number_served_from_cache)."""
     selected = cases if cases is not None else CASES
@@ -368,10 +410,15 @@ def run_eval(
             "system_prompt": system_prompt or "(lesson 3 default)",
             "cases": len(selected),
             "dataset_version": _dataset_fingerprint(selected),
+            # Recorded even when empty, so a saved run states what varied rather
+            # than leaving a reader to infer it from the run's name.
+            "variant_key": variant_key,
+            **(extra_config or {}),
         },
     )
 
     cache_hits = 0
+    cached_case_ids: list[str] = []
     for index, case in enumerate(selected):
         result, from_cache = run_case(
             client,
@@ -380,14 +427,29 @@ def run_eval(
             system_prompt=system_prompt,
             use_cache=use_cache,
             on_progress=on_progress,
+            variant_key=variant_key,
         )
         run.results.append(result)
         cache_hits += int(from_cache)
+        if from_cache:
+            cached_case_ids.append(case.id)
         # Pause only when we actually called the API, and not after the last case.
         if not from_cache and pause_between and index < len(selected) - 1:
             time.sleep(pause_between)
 
+    # Which cases were replayed, so a reader can tell the *cost of this configuration*
+    # (total_tokens, the right figure for cost per success) from the *tokens actually
+    # spent producing this file* (often zero). Conflating them makes a cached re-score
+    # look expensive, which is the opposite of the point of caching.
+    run.config["cached_cases"] = cached_case_ids
+
     return run, cache_hits
+
+
+#: Bumped when the fingerprint *algorithm* changes, so a mismatch can be reported
+#: as "computed differently" rather than as "the dataset changed". Conflating those
+#: two would send you looking for a dataset edit that never happened.
+FINGERPRINT_ALGORITHM = "v2"
 
 
 def _dataset_fingerprint(cases: list[EvalCase]) -> str:
@@ -395,13 +457,23 @@ def _dataset_fingerprint(cases: list[EvalCase]) -> str:
 
     Comparing two runs scored against different datasets is a silent way to reach a
     wrong conclusion, and it happens as soon as you add a case mid-session.
+
+    v1 hashed the *number* of scorers per case, which was a hole: replacing one
+    scorer with a different one left the count at three and the fingerprint
+    unchanged, so the comparison reported apples to apples while the two runs had
+    been graded by different instruments. Lesson 9 changes a scorer deliberately --
+    that is one of its experiments -- which is how the hole surfaced.
+
+    v2 hashes each scorer's `label`, which includes its arguments, so
+    `numeric_answer(31.0)` and `numeric_answer(30.0)` now differ too.
     """
     digest = hashlib.sha256()
     for case in sorted(cases, key=lambda c: c.id):
         digest.update(case.id.encode())
         digest.update(case.question.encode())
-        digest.update(str(len(case.scorers)).encode())
-    return digest.hexdigest()[:12]
+        for scorer in case.scorers:
+            digest.update(scorer_label(scorer).encode())
+    return f"{FINGERPRINT_ALGORITHM}:{digest.hexdigest()[:12]}"
 
 
 # ---------------------------------------------------------------------------
@@ -449,9 +521,25 @@ def compare(baseline: EvalRun, candidate: EvalRun) -> Comparison:
     base_fp = baseline.config.get("dataset_version")
     cand_fp = candidate.config.get("dataset_version")
     if base_fp and cand_fp and base_fp != cand_fp:
+        if _algorithm_of(base_fp) != _algorithm_of(cand_fp):
+            # Not the same claim at all. "I cannot verify this" and "this is wrong"
+            # deserve different words, and a tool that says the second when it means
+            # the first sends you hunting for an edit that never happened.
+            result.warnings.append(
+                f"Dataset fingerprints were computed by different algorithm versions "
+                f"({base_fp} vs {cand_fp}), so the datasets cannot be verified as "
+                f"identical. They may well be. Re-save the older run to check -- "
+                f"cached executions make that free."
+            )
+        else:
+            result.warnings.append(
+                "The dataset changed between these runs, so the comparison is not "
+                "apples to apples. Re-run the baseline."
+            )
+    if baseline.config.get("variant_key", "") != candidate.config.get("variant_key", ""):
         result.warnings.append(
-            "The dataset changed between these runs, so the comparison is not "
-            "apples to apples. Re-run the baseline."
+            "These runs used different tool registries (variant_key differs). Fine if "
+            "that is what you are testing."
         )
     if baseline.model != candidate.model:
         result.warnings.append(
@@ -508,6 +596,11 @@ def clear_cache() -> int:
     for path in files:
         path.unlink()
     return len(files)
+
+
+def _algorithm_of(fingerprint: str) -> str:
+    """The algorithm tag from a fingerprint. Untagged fingerprints are v1."""
+    return fingerprint.split(":", 1)[0] if ":" in fingerprint else "v1"
 
 
 def category_of(name: str) -> Category | None:

@@ -47,6 +47,19 @@ class Trajectory(Protocol):
 Scorer = Callable[["Trajectory"], ScoreResult]
 
 
+def scorer_label(scorer: Scorer) -> str:
+    """The scorer's identity, arguments included.
+
+    Added in lesson 9. Every factory below attaches a `label` to the function it
+    returns, so a scorer can be identified *before* it has been run. That sounds
+    like a detail and it is not: lesson 7's dataset fingerprint hashed the
+    *number* of scorers on each case, so swapping one scorer for another produced
+    an identical fingerprint and the comparison cheerfully reported apples to
+    apples. Lesson 9 changes a scorer on purpose, which is how the hole was found.
+    """
+    return getattr(scorer, "label", getattr(scorer, "__qualname__", repr(scorer)))
+
+
 # ---------------------------------------------------------------------------
 # Normalisation
 # ---------------------------------------------------------------------------
@@ -126,6 +139,8 @@ def numeric_answer(expected: float, tolerance: float = 0.01) -> Scorer:
     (16,857.225 shown as 16,857.23) and should not fail; a wrong answer should.
     """
 
+    label = f"numeric_answer({_pretty(expected)})"
+
     def score(trajectory: Trajectory) -> ScoreResult:
         found = extract_numbers(trajectory.final_answer)
         hit = any(abs(value - expected) <= tolerance for value in found)
@@ -137,9 +152,10 @@ def numeric_answer(expected: float, tolerance: float = 0.01) -> Scorer:
                 f"expected {_pretty(expected)} (+/-{_pretty(tolerance)}); "
                 f"{'found it' if hit else f'closest found: {nearest or None}'}"
             ),
-            name=f"numeric_answer({_pretty(expected)})",
+            name=label,
         )
 
+    score.label = label
     return score
 
 
@@ -151,15 +167,18 @@ def mentions(required: list[str]) -> Scorer:
     is for.
     """
 
+    label = f"mentions({required})"
+
     def score(trajectory: Trajectory) -> ScoreResult:
         answer = normalise(trajectory.final_answer)
         missing = [phrase for phrase in required if normalise(phrase) not in answer]
         return ScoreResult(
             passed=not missing,
             detail="all phrases present" if not missing else f"missing: {missing}",
-            name=f"mentions({required})",
+            name=label,
         )
 
+    score.label = label
     return score
 
 
@@ -172,6 +191,8 @@ def does_not_contain(forbidden: list[str]) -> Scorer:
     fabricated file contents.
     """
 
+    label = f"does_not_contain({forbidden})"
+
     def score(trajectory: Trajectory) -> ScoreResult:
         answer = normalise(trajectory.final_answer)
         found = [phrase for phrase in forbidden if normalise(phrase) in answer]
@@ -180,9 +201,10 @@ def does_not_contain(forbidden: list[str]) -> Scorer:
             detail="none of the forbidden strings present"
             if not found
             else f"FABRICATION RISK, found: {found}",
-            name=f"does_not_contain({forbidden})",
+            name=label,
         )
 
+    score.label = label
     return score
 
 
@@ -199,6 +221,7 @@ def does_not_match(pattern: str, *, label: str = "") -> Scorer:
     actually means.
     """
     compiled = re.compile(pattern, re.IGNORECASE)
+    scorer_name = f"does_not_match({label or pattern})"
 
     def score(trajectory: Trajectory) -> ScoreResult:
         answer = normalise(trajectory.final_answer)
@@ -210,9 +233,10 @@ def does_not_match(pattern: str, *, label: str = "") -> Scorer:
                 if found is None
                 else f"FABRICATION RISK, matched {label or pattern!r}: {found.group()!r}"
             ),
-            name=f"does_not_match({label or pattern})",
+            name=scorer_name,
         )
 
+    score.label = scorer_name
     return score
 
 
@@ -252,6 +276,7 @@ def declined() -> Scorer:
             name="declined",
         )
 
+    score.label = "declined"
     return score
 
 
@@ -266,6 +291,8 @@ def used_tools(expected: list[str], *, ordered: bool = False) -> Scorer:
     little gain; a genuinely order-dependent task is better expressed as two cases.
     """
 
+    label = f"used_tools({expected})"
+
     def score(trajectory: Trajectory) -> ScoreResult:
         actual = trajectory.tool_sequence
         if ordered:
@@ -275,9 +302,10 @@ def used_tools(expected: list[str], *, ordered: bool = False) -> Scorer:
         return ScoreResult(
             passed=passed,
             detail=f"expected {expected}, used {actual or '(none)'}",
-            name=f"used_tools({expected})",
+            name=label,
         )
 
+    score.label = label
     return score
 
 
@@ -292,6 +320,7 @@ def answered_without_tools() -> Scorer:
             name="answered_without_tools",
         )
 
+    score.label = "answered_without_tools"
     return score
 
 
