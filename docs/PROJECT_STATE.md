@@ -57,8 +57,16 @@ A learn-by-doing course on building LLM agents, written as a public repo. The us
 | 03 — The agent loop | **Complete, verified against a live model** |
 | 04 — Memory and context | **Complete, verified against a live model** |
 | 05 — Retrieval | **Complete, verified against a live model** |
-| 06 — Testing | **Next up. Not started.** |
-| 07–13 | Planned only. See the curriculum table in the root README. |
+| 06 — Testing | **Complete. 111 offline tests + 8 live, all passing** |
+| 07 — Evaluation | **Next up. Not started.** |
+| 08–13 | Planned only. See the curriculum table in the root README. |
+
+**There is a test suite now. Run it before and after any change:**
+
+```powershell
+uv run pytest lessons/06-testing          # 111 tests, offline, ~1 second
+uv run pytest lessons/06-testing -m live  # 8 more, costs tokens
+```
 
 Lesson 3's `run_agent` gained two optional parameters while building lesson 4:
 `compactor` (a hook called before each model call) and `initial_messages` (start
@@ -152,7 +160,31 @@ On `openai/gpt-oss-120b` via Groq:
 - Lesson 1 reliability, 5 identical runs at temperature 0: **3/5 succeeded first attempt**, all 5 final outputs identical. The repair loop silently absorbed a 40% failure rate.
 - Lesson 1, `json_mode` vs prompt-only: 1 attempt / 1,716 tokens vs 2 attempts / 3,044 tokens.
 
-## Where lesson 06 picks up
+## Where lesson 07 picks up
+
+Lesson 6 tests whether the machinery *works*. Lesson 7 asks whether the agent is any *good* — a different question, and the gap is already documented:
+
+`stop_reason == COMPLETED` means "the model stopped asking for tools", not "the answer is correct". `test_completed_does_not_mean_correct` in lesson 6 pins this with a real recording: asked for a share price it cannot fetch, the agent declines gracefully and the loop reports success. No mechanical test can tell that apart from a correct answer.
+
+Pieces already in place:
+
+- `lessons/05-retrieval/queries.py` — 10 labelled queries with an `is_correct` matcher, plus a `tests` field explaining why each case exists
+- `lessons/06-testing/fakes.py` — `CassetteClient` for replaying runs without spending tokens, which matters enormously for evals
+- `lessons/03-agent-loop/loop.py` — `Trajectory` with `tool_sequence` and per-step usage, so tool-choice accuracy and cost are already measurable
+- Lesson 5's `--measure` is effectively a single-metric eval harness; generalise it
+
+Lesson 07 should build:
+
+1. **An eval dataset with task-level expectations**, not just retrieval targets: input, expected outcome, and how to judge it.
+2. **Metrics that matter**: task success rate, tool-choice accuracy, steps taken, tokens spent. Lesson 5 established `top-1` versus `recall@k`; extend that thinking.
+3. **Deterministic scorers first** — exact match, numeric tolerance, required-substring, expected tool sequence. Cheap and unambiguous.
+4. **A scorecard** that is honest about sample size. Lesson 5's repeated finding: 10 cases cannot resolve a 1-case difference, and a subtly wrong eval is more dangerous than none.
+5. **Regression detection** — run the suite against two configurations and report what improved *and what broke*, since an average can rise while specific cases fail.
+6. **Caching by default.** Re-running an eval must not re-spend tokens. This is both a cost and a correctness issue: cached results make comparisons reproducible.
+
+Token budget is the hard constraint here: 200k/day and 8k/minute. Design for `gpt-oss-20b`, small datasets, and cached runs. Read the rate-limit notes above before starting.
+
+## Where lesson 06 picked up (done)
 
 Lesson 6 is testing, and two pieces already exist:
 
@@ -299,6 +331,18 @@ lessons/05-retrieval/
   agent.py                     deliverable; --build/--search/--measure/--chunking/--stuffing/--ask
   NOTES.md                     revision notes incl. two measurement bugs
   .cache/                      embedding cache (gitignored)
+
+lessons/06-testing/
+  README.md                    deterministic vs stochastic, doubles, 6 exercises
+  fakes.py                     THE lesson: ScriptedClient, CassetteClient, RecordingClient
+  conftest.py                  sys.path for lessons 1-5; live marker + skip logic
+  test_deterministic.py        56 tests: sandbox, dispatcher, trimming, chunking
+  test_loop.py                 the loop under scripted doubles
+  test_regressions.py          one test per bug this project shipped
+  test_cassettes.py            replays recorded runs; real model quirks
+  test_live.py                 8 opt-in tests (provider contract, estimator drift)
+  record.py                    records cassettes; the only token-spending script here
+  cassettes/*.json             committed fixtures (4 scenarios)
 ```
 
 Note lesson 5 imports lesson 4's `ContextManager` and lesson 3's `run_agent` and

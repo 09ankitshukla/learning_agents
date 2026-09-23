@@ -176,9 +176,29 @@ Generate the schema from your type so prompt and validation can't drift. Extract
 
 **Keyword search is not obsolete.** It scored 0/10 only because every query was paraphrased. For a literal string — function name, error message, identifier — it is exact where semantic is approximate. Keep both.
 
-## Lesson 06 — Testing
+## Lesson 06 — Testing · [notes](../lessons/06-testing/NOTES.md)
 
-*Not yet written.*
+**The one idea: "agents can't be tested because they're non-deterministic" is half true, and believing it leads to testing nothing.** The dispatcher, sandbox, calculator, trimming, estimator, chunking and keyword search are all ordinary deterministic code — and all of the security and correctness properties live there.
+
+**Substitute at the seam, not at HTTP.** Mocking `httpx` tests the SDK, not your agent. `LLMClient.chat()` is the seam; anything with that shape is a drop-in model. That Protocol was written in lesson 0 for provider-swapping and turns out to be what makes the project testable. **Designing a substitutable boundary before you need one is most of what makes code testable later.**
+
+**Two doubles, two jobs.** *Scripted* clients let you write the responses — the only way to test token starvation, malformed tool arguments or a phantom tool on demand. *Cassettes* replay real recordings and preserve quirks you would not think to fake (`content: null` on tool turns, reasoning-token counts). Use both; when they disagree, the cassette is right.
+
+**Assert on the trajectory, never on prose:** `stop_reason`, then `tool_sequence`, then **the requests your double received**, and almost never the final text. Many agent bugs live in what you *send* — so the double must record requests, and must copy them because the loop mutates its own list.
+
+**Test your doubles.** Two bugs in mine: the cassette replayed entry 0 twice (key lookups and sequential fallback used separate counters) producing a false `STALLED`; and a double that silently repeats its last response lets a runaway 40-iteration loop pass as green. **A lying fake is worse than no test.**
+
+**Live tests opt-in, and few.** 111 offline tests run in under a second; 8 live tests are deselected by default. **A suite you avoid running because it's expensive provides no safety.** Live tests should check provider assumptions a double cannot — does the model still exist, does tool calling still work — and be tolerant, catching structural breaks rather than a few percent drift.
+
+**Property-shaped beats example-shaped.** `for budget in range(...): assert validate(trim_safe(...)) == []` would have caught lesson 4's orphan bug directly.
+
+**Keep counterexample tests.** One test asserts that the deliberately-broken `trim_naive` *is* broken, so nobody "fixes" it and silently destroys lesson 4's demonstration.
+
+**What the suite found immediately: two classes named `ToolError`.** Lesson 2 declared its own; lesson 3's promoted dispatcher caught `llmkit`'s. So every timezone and currency error in lessons 3–5 was reported as `failed unexpectedly` instead of its actionable message, silently undoing the self-correction lesson 2 demonstrates. **Invisible to inspection** — same name, every call site reads correctly. Found by asserting on error text.
+
+**Then I broke this lesson's own rule.** A live test asserted `"6319" in final_answer` after stripping commas; the model wrote LaTeX `6{,}319` → `6{}319`. Arithmetic perfect, assertion wrong. Now checks the tool result instead.
+
+**The regression suite is the honest documentation.** One test per bug actually shipped. Each cost real debugging time; each test costs milliseconds and runs forever.
 
 ## Lesson 07 — Evaluation
 

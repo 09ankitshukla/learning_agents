@@ -64,7 +64,7 @@ Note that hosted providers retire models regularly — `check_env.py` prints the
 |---|---|---|---|
 | 04 | [Memory and context](lessons/04-memory-context) | token accounting, atomic message groups, trimming, summarisation, persistence | agent that stays inside a budget |
 | 05 | [Retrieval](lessons/05-retrieval) | chunking, embeddings, vector search, keyword vs semantic vs hybrid, measured | agent that answers over your own notes |
-| 06 | Testing agents | deterministic vs. stochastic parts, recorded fixtures, trajectory assertions | a real pytest suite |
+| 06 | [Testing agents](lessons/06-testing) | deterministic vs stochastic parts, scripted doubles, cassettes, trajectory assertions | 111 offline tests in under a second |
 
 **Part 3 — Knowing whether it works.** The part most tutorials skip.
 
@@ -104,7 +104,14 @@ uv run lessons/01-structured-output/extract.py
 
 ## Status
 
-Lessons 00 through 05 are complete and verified against a live model. Lesson 06 is next.
+Lessons 00 through 06 are complete and verified against a live model. Lesson 07 is next.
+
+From lesson 6 onward there's a test suite:
+
+```powershell
+uv run pytest lessons/06-testing          # 111 tests, offline, ~1 second
+uv run pytest lessons/06-testing -m live  # 8 more, hits the API
+```
 
 By the end of lesson 3 you have a working agent: it plans across multiple steps, recovers from its own mistakes, refuses to escape its sandbox, and reports honestly when it gives up. Lesson 4 keeps it inside a token budget and lets a session survive a restart.
 

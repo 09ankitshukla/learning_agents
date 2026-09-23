@@ -120,7 +120,15 @@ Terms in the order you'll meet them, not alphabetical. Definitions are practical
 
 **Deterministic vs. stochastic parts** — your tools and parsing are deterministic and testable normally; model output isn't. Separating them is the core testing strategy.
 
-**Fixture / cassette** — a recorded model response replayed in tests, making them fast, free and repeatable.
+**Fixture / cassette** — a recorded model response replayed in tests, making them fast, free and repeatable. Preserves quirks a hand-written fake would miss.
+
+**Test double** — any stand-in for a real dependency. Here: a *scripted* client whose responses you write, versus a *cassette* client that replays recordings. Scripted doubles test specific paths; cassettes keep the scripted ones honest.
+
+**Seam** — the boundary where a real dependency can be swapped for a double. In this project it is the `LLMClient` protocol's `chat()` method. Designing a substitutable seam before you need one is most of what makes code testable.
+
+**Property-shaped test** — asserts an invariant across many inputs ("whatever trimming produces is structurally valid") rather than one example ("trimming produces exactly this"). Catches the cases you did not think of.
+
+**Live test** — a test that calls a real API. Slow, costs tokens, fails on rate limits, so it must be opt-in. Closer to monitoring than to unit testing.
 
 **Eval dataset** — inputs paired with expected outcomes, used to score an agent.
 
