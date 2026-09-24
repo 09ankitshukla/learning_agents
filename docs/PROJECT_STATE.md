@@ -20,12 +20,19 @@ uv run pytest lessons                    # expect 336 passed, 8 skipped, ~2s
 # 3. confirm the live model still works (9 checks, a few seconds)
 uv run lessons/00-setup/check_env.py
 
-# 4. see measured results without spending tokens
-uv run lessons/07-evaluation/evaluate.py --compare baseline strict
-uv run lessons/09-iteration/iterate.py --log
-uv run lessons/09-iteration/iterate.py --scorecard
-uv run lessons/09-iteration/iterate.py --replay
+# 4. see measured results without spending tokens. All of these are free.
+uv run lessons/07-evaluation/evaluate.py --compare baseline strict   # a real regression
+uv run lessons/09-iteration/iterate.py --log          # 4 experiments, 3 of them failures
+uv run lessons/09-iteration/iterate.py --scorecard    # predictions were 1/4 right
+uv run lessons/09-iteration/iterate.py --replay       # decisions re-derived from artifacts
+uv run lessons/10-multi-agent/multi.py --team         # the delegation wiring
+uv run lessons/11-guardrails/harden.py --threats      # the threat model
+uv run lessons/11-guardrails/harden.py --controls     # every guard, on fixed input
+uv run lessons/11-guardrails/harden.py --cost         # what a guardrail costs per step
 ```
+
+Those seven are the fastest way to understand what this project actually concluded, and
+none of them needs an API key.
 
 If `uv` is not found in a fresh shell, refresh PATH:
 
